@@ -1,0 +1,4 @@
+/code/runs/
+/data/yelp2018/sub_s_pre_adj_mat.npz
+
+*.npz
