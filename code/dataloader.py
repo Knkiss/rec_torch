@@ -268,6 +268,34 @@ class KGDataset(Dataset):
         heads = list(kg_dict.keys())
         return kg_dict, heads
 
+    def get_kg_dict_random(self, item_num):
+        kg_dict = collections.defaultdict(list)
+        a = self.kg_data.sample(frac=0.8)
+        for row in a.iterrows():
+            h, r, t = row[1]
+            kg_dict[h].append((r, t))
+
+        entity_num = world.entity_num_per_item
+        i2es = dict()
+        i2rs = dict()
+        for item in range(item_num):
+            rts = kg_dict.get(item, False)
+            if rts:
+                tails = list(map(lambda x: x[1], rts))
+                relations = list(map(lambda x: x[0], rts))
+                if len(tails) > entity_num:
+                    i2es[item] = torch.IntTensor(tails).to(world.device)[:entity_num]
+                    i2rs[item] = torch.IntTensor(relations).to(world.device)[:entity_num]
+                else:
+                    tails.extend([self.entity_count] * (entity_num - len(tails)))
+                    relations.extend([self.relation_count] * (entity_num - len(relations)))
+                    i2es[item] = torch.IntTensor(tails).to(world.device)
+                    i2rs[item] = torch.IntTensor(relations).to(world.device)
+            else:
+                i2es[item] = torch.IntTensor([self.entity_count] * entity_num).to(world.device)
+                i2rs[item] = torch.IntTensor([self.relation_count] * entity_num).to(world.device)
+        return i2es, i2rs
+
     def __len__(self):
         return self.length
 

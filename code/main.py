@@ -113,7 +113,7 @@ class Manager:
         self.rec_model.train()
         KGLoader = DataLoader(self.rec_model.kg_dataset, batch_size=4096, drop_last=False)
         trans_loss = 0.
-        for data in tqdm(KGLoader, total=len(KGLoader), disable=True):
+        for data in tqdm(KGLoader, total=len(KGLoader), disable=False):
             heads = data[0].to(world.device)
             relations = data[1].to(world.device)
             pos_tails = data[2].to(world.device)
@@ -133,7 +133,7 @@ class Manager:
         UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=0)
         total_batch = len(UILoader)
         aver_loss = 0.
-        for batch_i, train_data in tqdm(enumerate(UILoader), total=len(UILoader), disable=True):
+        for batch_i, train_data in tqdm(enumerate(UILoader), total=len(UILoader), disable=False):
             batch_users = train_data[0].long().to(world.device)
             batch_pos = train_data[1].long().to(world.device)
             batch_neg = train_data[2].long().to(world.device)

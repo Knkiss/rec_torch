@@ -69,7 +69,7 @@ class Contrast(nn.Module):
         uiv1, uiv2 = contrast_views["uiv1"], contrast_views["uiv2"]
         kgv1, kgv2 = contrast_views["kgv1"], contrast_views["kgv2"]
 
-        for batch_i, train_data in tqdm(enumerate(dataloader), total=len(dataloader), disable=True):
+        for batch_i, train_data in tqdm(enumerate(dataloader), total=len(dataloader), disable=False):
             batch_users = train_data[0].long().to(world.device)
             batch_pos = train_data[1].long().to(world.device)
             batch_neg = train_data[2].long().to(world.device)
@@ -108,9 +108,7 @@ class Contrast(nn.Module):
         w.add_scalar(f'Loss/BPR', aver_loss_main, epoch)
         w.add_scalar(f'Loss/SSL', aver_loss_ssl, epoch)
 
-        time_info = utils.timer.dict()
-        utils.timer.zero()
-        return f"loss{aver_loss:.3f} = {aver_loss_ssl:.3f}+{aver_loss_main:.3f}-{time_info}"
+        return f"loss{aver_loss:.3f} = {aver_loss_ssl:.3f}+{aver_loss_main:.3f}"
 
     def projection(self, z: torch.Tensor) -> torch.Tensor:
         z = F.elu(self.fc1(z))
@@ -246,16 +244,17 @@ class Contrast(nn.Module):
     def item_kg_stability(self, view1, view2):
         kgv1_ro = self.gcn_model.cal_item_embedding_from_kg(view1)  # items * dims
         kgv2_ro = self.gcn_model.cal_item_embedding_from_kg(view2)  # items * dims
-        # sim = self.sim(kgv1_ro, kgv2_ro)  # items
-        # return sim
-        userList = torch.LongTensor(self.gcn_model.ui_dataset.trainUser).to(world.device)
-        user1_emb = self.gcn_model.embedding_user(userList)  # inters * dims
-        user2_emb = self.gcn_model.embedding_user(userList)  # inters * dims
-        item1_emb = kgv1_ro[self.gcn_model.ui_dataset.trainItem]  # inters * dim
-        item2_emb = kgv2_ro[self.gcn_model.ui_dataset.trainItem]  # inters * dim
-        ui1_emb = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dim*2
-        ui2_emb = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dim*2
-        sim = F.cosine_similarity(ui1_emb, ui2_emb)  # inters
+        if world.user_item_preference:
+            userList = torch.LongTensor(self.gcn_model.ui_dataset.trainUser).to(world.device)
+            user1_emb = self.gcn_model.embedding_user(userList)  # inters * dims
+            user2_emb = self.gcn_model.embedding_user(userList)  # inters * dims
+            item1_emb = kgv1_ro[self.gcn_model.ui_dataset.trainItem]  # inters * dim
+            item2_emb = kgv2_ro[self.gcn_model.ui_dataset.trainItem]  # inters * dim
+            ui1_emb = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dim*2
+            ui2_emb = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dim*2
+            sim = F.cosine_similarity(ui1_emb, ui2_emb)  # inters 交互数量
+        else:
+            sim = self.sim(kgv1_ro, kgv2_ro)  # items 物品数量
         return sim
 
     def ui_drop_weighted(self, item_mask):
@@ -263,9 +262,14 @@ class Contrast(nn.Module):
         n_nodes = self.gcn_model.num_users + self.gcn_model.num_items
         item_np = self.gcn_model.ui_dataset.trainItem
         keep_idx = list()
-        for i, j in enumerate(item_mask):
-            if j:
-                keep_idx.append(i)
+        if world.user_item_preference:
+            for i, j in enumerate(item_mask):
+                if j:
+                    keep_idx.append(i)
+        else:
+            for i, j in enumerate(item_np.tolist()):
+                if item_mask[j]:
+                    keep_idx.append(i)
 
 
         print(f"finally keep ratio: {len(keep_idx) / len(item_np.tolist()):.2f}")
@@ -311,7 +315,10 @@ class Contrast(nn.Module):
         return contrast_views
 
     def get_kg_views(self):
-        kg = self.gcn_model.kg_dict
+        if world.item_entity_random_walk:
+            kg, _ = self.gcn_model.kg_dataset.get_kg_dict_random(self.gcn_model.num_items)
+        else:
+            kg = self.gcn_model.kg_dict
         view1 = drop_edge_random(kg, world.kg_p_drop, self.gcn_model.num_entities)
         view2 = drop_edge_random(kg, world.kg_p_drop, self.gcn_model.num_entities)
         return view1, view2

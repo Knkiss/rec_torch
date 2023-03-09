@@ -10,11 +10,14 @@ from os.path import join
 import torch
 
 
+user_item_preference = True
+item_entity_random_walk = True
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
     # read
-    parser.add_argument('--model', type=str, default='MF',
+    parser.add_argument('--model', type=str, default='KGCL',
                         help="available datasets: [KGCL, MF, lightGCN]")
     parser.add_argument('--dataset', type=str, default='yelp2018',
                         help="available datasets: [yelp2018, amazon-book, MIND]")
@@ -48,7 +51,7 @@ def parse_args():
                         help="the batch size of users for testing")
 
     # tensorboard
-    parser.add_argument('--comment', type=str, default="lgn")
+    parser.add_argument('--comment', type=str, default="")
     return parser.parse_args()
 
 

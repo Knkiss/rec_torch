@@ -174,8 +174,6 @@ class KGCL(nn.Module):
         return self.gat.forward_relation(item_embs, entity_embs, relation_embs, padding_mask)
 
     def cal_item_embedding_from_kg(self, kg: dict):
-        if kg is None:
-            kg = self.kg_dict
         return self.cal_item_embedding_rgat(kg)
 
     def forward(self, users, items):
