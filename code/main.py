@@ -65,7 +65,13 @@ class Manager:
         if world.model == 'KGCL':
             self.rec_model = model.KGCL(world.config).to(world.device)
             self.contrast_model = contrast.Contrast(self.rec_model).to(world.device)
-            self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec_Contrast, Procedure.Test]
+            if world.use_Trans:
+                self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec_Contrast, Procedure.Test]
+            else:
+                self.procedure = [Procedure.Train_Rec_Contrast, Procedure.Test]
+        elif world.model == 'GraphCL':
+            self.rec_model = model.GraphCL().to(world.device)
+            self.procedure = [Procedure.Train_Rec, Procedure.Test]
         else:
             self.rec_model = model.Baseline(world.config).to(world.device)
             self.procedure = [Procedure.Train_Rec, Procedure.Test]

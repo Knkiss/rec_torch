@@ -10,15 +10,17 @@ from os.path import join
 import torch
 
 
-user_item_preference = True
-item_entity_random_walk = True
+# KGCL model version
+user_item_preference = False
+item_entity_random_walk = False
+use_Trans = False
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
     # read
     parser.add_argument('--model', type=str, default='KGCL',
-                        help="available datasets: [KGCL, MF, lightGCN]")
+                        help="available datasets: [KGCL, MF, lightGCN, GraphCL]")
     parser.add_argument('--dataset', type=str, default='yelp2018',
                         help="available datasets: [yelp2018, amazon-book, MIND]")
     parser.add_argument('--bpr_batch', type=int, default=2048,
