@@ -105,8 +105,9 @@ class Contrast(nn.Module):
         aver_loss_main = aver_loss_main / (total_batch * batch_size)
         aver_loss_ssl = aver_loss_ssl / (total_batch * batch_size)
 
-        w.add_scalar(f'Loss/BPR', aver_loss_main, epoch)
-        w.add_scalar(f'Loss/SSL', aver_loss_ssl, epoch)
+        if world.tensorboard:
+            w.add_scalar(f'Loss/BPR', aver_loss_main, epoch)
+            w.add_scalar(f'Loss/SSL', aver_loss_ssl, epoch)
 
         return f"loss{aver_loss:.3f} = {aver_loss_ssl:.3f}+{aver_loss_main:.3f}"
 

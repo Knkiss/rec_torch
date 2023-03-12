@@ -10,10 +10,11 @@ from os.path import join
 import torch
 
 
-# KGCL model version
+# KGCL model version @default=False
 user_item_preference = False
 item_entity_random_walk = False
-use_Trans = False
+remove_Trans = False
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
