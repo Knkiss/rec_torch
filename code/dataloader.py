@@ -18,6 +18,8 @@ from torch.utils.data import Dataset
 from scipy.sparse import csr_matrix
 
 import scipy.sparse as sp
+
+import utils
 import world
 
 
@@ -136,17 +138,8 @@ class UIDataset(Dataset):
                 end = self.n_users + self.m_items
             else:
                 end = (i_fold + 1) * fold_len
-            A_fold.append(self._convert_sp_mat_to_sp_tensor(A[start:end]).coalesce().to(world.device))
+            A_fold.append(utils.convert_sp_mat_to_sp_tensor(A[start:end]).coalesce().to(world.device))
         return A_fold
-
-    @staticmethod
-    def _convert_sp_mat_to_sp_tensor(X):
-        coo = X.tocoo().astype(np.float32)
-        row = torch.Tensor(coo.row).long()
-        col = torch.Tensor(coo.col).long()
-        index = torch.stack([row, col])
-        data = torch.FloatTensor(coo.data)
-        return torch.sparse.FloatTensor(index, data, torch.Size(coo.shape))
 
     def getSparseGraph(self):
         print("loading adjacency matrix")
@@ -182,7 +175,7 @@ class UIDataset(Dataset):
                 self.Graph = self._split_A_hat(norm_adj)
                 print("done split matrix")
             else:
-                self.Graph = self._convert_sp_mat_to_sp_tensor(norm_adj)
+                self.Graph = utils.convert_sp_mat_to_sp_tensor(norm_adj)
                 self.Graph = self.Graph.coalesce().to(world.device)
                 print("don't split the matrix")
         return self.Graph

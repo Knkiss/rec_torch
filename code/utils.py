@@ -5,14 +5,16 @@
 @Author  ：Knkiss
 @Date    ：2023/2/14 12:14 
 """
-import os
 import smtplib
 from email.mime.text import MIMEText
+from random import random
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 import world
+from main import Metrics
 
 
 def set_seed(seed):
@@ -23,11 +25,107 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 
-def computeBPR(model, users, pos, neg):
-    loss, reg_loss = model.bpr_loss(users, pos, neg)
-    reg_loss = reg_loss * world.config["decay"]
-    loss += reg_loss
+def loss_BPR(all_users, all_items, users, pos, neg):
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+    neg_scores = torch.mul(users_emb, neg_emb).sum(dim=1)
+    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores)))  # mean or sum
     return loss
+
+
+def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
+    userEmb0 = all_users_origin(users.long())
+    posEmb0 = all_items_origin(pos.long())
+    negEmb0 = all_items_origin(neg.long())
+    loss = (1 / 2) * (userEmb0.norm(2).pow(2) + posEmb0.norm(2).pow(2) + negEmb0.norm(2).pow(2)) / float(len(users))
+    return loss * world.decay
+
+
+def loss_info_nce(node_v1, node_v2, batch):
+    z1 = node_v1[batch]
+    z2 = node_v2[batch]
+    z_all = node_v2
+
+    def f(x):
+        return torch.exp(x / world.ssl_temp)
+
+    all_sim = f(sim(z1, z_all))
+    positive_pairs = f(sim(z1, z2))
+    negative_pairs = torch.sum(all_sim, 1)
+    loss = torch.sum(-torch.log(positive_pairs / negative_pairs))
+    return loss * world.ssl_reg
+
+
+def loss_SGL(node_v1, node_v2, batch):
+    emb1 = node_v1[batch]
+    emb2 = node_v2[batch]
+
+    normalize_emb1 = F.normalize(emb1, 1)
+    normalize_emb2 = F.normalize(emb2, 1)
+    normalize_all_emb2 = F.normalize(node_v2, dim=1)
+
+    pos_score = torch.sum(torch.mul(normalize_emb1, normalize_emb2), dim=1)
+    ttl_score = torch.matmul(normalize_emb1, normalize_all_emb2.T)
+
+    pos_score = torch.exp(pos_score / world.ssl_temp)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.ssl_temp), dim=1)
+
+    loss = -torch.sum(torch.log(pos_score / ttl_score))
+    return loss * world.ssl_reg
+
+
+def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
+    r_embed = relation(r)
+    h_embed = head(h)
+    pos_t_embed = tail(pos_t)
+    neg_t_embed = tail(neg_t)
+
+    pos_score = torch.sum(torch.pow(h_embed + r_embed - pos_t_embed, 2), dim=1)
+    neg_score = torch.sum(torch.pow(h_embed + r_embed - neg_t_embed, 2), dim=1)
+
+    kg_loss = (-1.0) * F.logsigmoid(neg_score - pos_score)
+    kg_loss = torch.mean(kg_loss)
+
+    l2_loss = _L2_loss_mean(h_embed) + _L2_loss_mean(r_embed) + _L2_loss_mean(pos_t_embed) + _L2_loss_mean(
+        neg_t_embed)
+    loss = kg_loss + 1e-3 * l2_loss
+    return loss
+
+
+def sim(z1: torch.Tensor, z2: torch.Tensor):
+    if z1.size()[0] == z2.size()[0]:
+        return F.cosine_similarity(z1, z2)
+    else:
+        z1 = F.normalize(z1)
+        z2 = F.normalize(z2)
+        return torch.mm(z1, z2.t())
+
+
+def dropout_x(x, keep_prob):
+    size = x.size()
+    index = x.indices().t()
+    values = x.values()
+    random_index = torch.rand(len(values)) + keep_prob
+    random_index = random_index.int().bool()
+    index = index[random_index]
+    values = values[random_index] / keep_prob
+    g = torch.sparse.FloatTensor(index.t(), values, size)
+    return g
+
+
+def drop_edge_random(item2entities, p_drop, padding):
+    res = dict()
+    for item, es in item2entities.items():
+        new_es = list()
+        for e in es.tolist():
+            if random() > p_drop:
+                new_es.append(e)
+            else:
+                new_es.append(padding)
+        res[item] = torch.IntTensor(new_es).to(world.device)
+    return res
 
 
 def randint_choice(high, size=None, replace=True, p=None, exclusion=None):
@@ -49,6 +147,15 @@ def randint_choice(high, size=None, replace=True, p=None, exclusion=None):
 
 def _L2_loss_mean(x):
     return torch.mean(torch.sum(torch.pow(x, 2), dim=1, keepdim=False) / 2.)
+
+
+def convert_sp_mat_to_sp_tensor(x):
+    coo = x.tocoo().astype(np.float32)
+    row = torch.Tensor(coo.row).long()
+    col = torch.Tensor(coo.col).long()
+    index = torch.stack([row, col])
+    data = torch.FloatTensor(coo.data)
+    return torch.sparse.FloatTensor(index, data, torch.Size(coo.shape))
 
 
 class timer:
@@ -134,7 +241,7 @@ def RecallPrecision_ATk(test_data, r, k):
     recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
     recall = np.sum(right_pred / recall_n)
     precis = np.sum(right_pred) / precis_n
-    return {'recall': recall, 'precision': precis}
+    return {Metrics.Recall.value: recall, Metrics.Precision.value: precis}
 
 
 def NDCGatK_r(test_data, r, k):
@@ -160,7 +267,7 @@ def NDCGatK_r(test_data, r, k):
 
 
 def minibatch(*tensors, **kwargs):
-    batch_size = kwargs.get('batch_size', world.config['bpr_batch_size'])
+    batch_size = kwargs.get('batch_size', world.config['train_batch_size'])
     if len(tensors) == 1:
         tensor = tensors[0]
         for i in range(0, len(tensor), batch_size):
@@ -171,24 +278,26 @@ def minibatch(*tensors, **kwargs):
 
 
 def mail_on_stop(results):
+    if not world.mail_on_stop_enable:
+        return
+
     content = '模型: ' + str(world.model) + '\n数据集: ' + str(world.dataset) + '\n结果: ' + str(results)
     if world.comment:
         content += '\n' + world.comment
     message = MIMEText(content, 'plain', 'utf-8')
     message['Subject'] = '服务器代码运行完毕'
-    message['From'] = world.sender
-    message['To'] = world.receivers[0]
+    message['From'] = world.mail_sender
+    message['To'] = world.mail_receivers[0]
 
-    # 登录并发送邮件
     try:
         smtpObj = smtplib.SMTP()
         smtpObj.connect(world.mail_host, 25)
         smtpObj.login(world.mail_user, world.mail_pass)
-        smtpObj.sendmail(world.sender, world.receivers, message.as_string())
+        smtpObj.sendmail(world.mail_sender, world.mail_receivers, message.as_string())
         smtpObj.quit()
-        print('Send mail to ' + world.receivers[0])
+        print('发送提醒邮件至' + world.mail_receivers[0])
     except smtplib.SMTPException as e:
-        print('error', e)  # 打印错误
+        print('发送邮件错误：', e)
 
 
 if __name__ == '__main__':

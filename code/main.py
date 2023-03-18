@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 @Project ：rec_torch 
-@File    ：selector.py
+@File    ：main.py
 @Author  ：Knkiss
 @Date    ：2023/2/16 16:44 
 """
-import multiprocessing
+import sys
 import time
 from enum import Enum
 from os.path import join
@@ -18,30 +18,33 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import contrast
-
-import world
 import model
 import utils
+import world
+
+
+class Loss(Enum):
+    BPR = 'BPR'
+    SSL = 'SSL'
+    TransE = 'TransE'
+    Regulation = 'reg'
 
 
 class Metrics(Enum):
-    Recall = "recall"
-    Precision = "precision"
+    Recall = "Recall"
+    Precision = "Precision"
     NDCG = "NDCG"
 
 
 class Procedure(Enum):
     Train_Trans = 1
     Train_Rec = 2
-    Train_Rec_Contrast = 4
     Test = 3
 
 
 class Manager:
     def __init__(self):
-        self.rec_model = None  # 推荐本体模型
-        self.contrast_model = None  # 对比学习模型
+        self.rec_model: model.AbstractRecModel  # 推荐模型
         self.optimizer = None  # 优化器，计算梯度
         self.scheduler = None  # 学习率调整器
         self.tensorboard = None  # 可视化损失和结果
@@ -57,32 +60,32 @@ class Manager:
         self.__prepare_optimizer()
         self.__prepare_tensorboard()
         self.print_rec_module_info()
-        self.loop_procedure()
+        self.__loop_procedure()
         self.__close()
         utils.mail_on_stop(self.best_result)
 
     def __prepare_model(self):
+        self.procedure = [Procedure.Train_Rec, Procedure.Test]
         if world.model == 'KGCL':
-            self.rec_model = model.KGCL(world.config).to(world.device)
-            self.contrast_model = contrast.Contrast(self.rec_model).to(world.device)
-            if world.remove_Trans:
-                self.procedure = [Procedure.Train_Rec_Contrast, Procedure.Test]
-            else:
-                self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec_Contrast, Procedure.Test]
-        elif world.model == 'GraphCL':
-            self.rec_model = model.GraphCL().to(world.device)
-            self.procedure = [Procedure.Train_Rec, Procedure.Test]
+            self.rec_model = model.KGCL()
+            if not world.remove_Trans:
+                self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
+        elif world.model == 'QKV':
+            self.rec_model = model.QKV()
+        elif world.model == 'SGL' or world.model == 'GraphCL':
+            self.rec_model = model.SGL()
         else:
-            self.rec_model = model.Baseline(world.config).to(world.device)
-            self.procedure = [Procedure.Train_Rec, Procedure.Test]
+            self.rec_model = model.Baseline()
+        self.rec_model = self.rec_model.to(world.device)
 
     def __prepare_optimizer(self):
         self.optimizer = optim.Adam(self.rec_model.parameters(), lr=world.config['lr'])
         self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[1500, 2500], gamma=0.2)  # 数据集区别
 
     def __prepare_tensorboard(self):
-        if world.tensorboard:
-            self.tensorboard = SummaryWriter(join(world.BOARD_PATH, time.strftime("%m-%d_%Hh%Mm%Ss_"+world.model)))
+        if world.tensorboard_enable:
+            self.tensorboard = SummaryWriter(join(world.BOARD_PATH, time.strftime("%m-%d_%Hh%Mm%Ss_" + world.model)))
+            world.tensorboard_instance = self.tensorboard
 
     def print_rec_module_info(self):
         print("---------------------")
@@ -93,24 +96,19 @@ class Manager:
             print(i, ' :', j.shape)
         print("---------------------")
 
-    def loop_procedure(self):
-        for self.epoch in range(world.TRAIN_epochs):
-            if self.stopping_step == -1:
-                print("Best result: "+str(self.best_result))
+    def __loop_procedure(self):
+        for self.epoch in range(0, world.TRAIN_epochs):
+            world.epoch = self.epoch
+            if self.stopping_step == -1 or self.epoch == world.TRAIN_epochs - 1:
+                print("Best result: " + str(self.best_result))
                 break
             for i in self.procedure:
                 if i == Procedure.Train_Rec:
-                    print("【Main】")
                     self.__procedure_train_Rec()
                 elif i == Procedure.Test:
                     self.__procedure_test()
                 elif i == Procedure.Train_Trans:
-                    print("【Trans】")
                     self.__procedure_train_TransR()
-                elif i == Procedure.Train_Rec_Contrast:
-                    print("【Main】")
-                    self.contrast_model.BPR_train_contrast(self.contrast_model.get_views(),
-                                                           self.epoch, self.optimizer, w = self.tensorboard)
                 else:
                     raise Exception('不存在的进程类型')
             self.scheduler.step()
@@ -119,79 +117,97 @@ class Manager:
         self.rec_model.train()
         KGLoader = DataLoader(self.rec_model.kg_dataset, batch_size=4096, drop_last=False)
         trans_loss = 0.
-        for data in tqdm(KGLoader, total=len(KGLoader), disable=False):
-            heads = data[0].to(world.device)
-            relations = data[1].to(world.device)
-            pos_tails = data[2].to(world.device)
-            neg_tails = data[3].to(world.device)
-            kg_batch_loss = self.rec_model.calc_kg_loss_transE(heads, relations, pos_tails, neg_tails)
-            trans_loss += kg_batch_loss / len(KGLoader)
-            self.optimizer.zero_grad()
-            kg_batch_loss.backward()
-            self.optimizer.step()
-        if self.tensorboard is not None:
-            self.tensorboard.add_scalar(f'Loss/Trans', trans_loss, self.epoch)
-        print(f"Trans Loss: {trans_loss.cpu().item():.3f}")
+        with tqdm(KGLoader, file=sys.stdout, total=len(KGLoader),
+                  desc='Trans Epoch ' + str(world.epoch).zfill(3)) as t:
+            for data in t:
+                heads = data[0].to(world.device)
+                relations = data[1].to(world.device)
+                pos_tails = data[2].to(world.device)
+                neg_tails = data[3].to(world.device)
+                kg_batch_loss = self.rec_model.calculate_loss_transE(heads, relations, pos_tails, neg_tails)
+                self.optimizer.zero_grad()
+                kg_batch_loss.backward()
+                self.optimizer.step()
+                trans_loss += kg_batch_loss.cpu().item()
+            t.close()
+        if world.tensorboard_enable:
+            self.tensorboard.add_scalar(f'Loss/Trans', trans_loss / len(KGLoader), self.epoch)
 
     def __procedure_train_Rec(self):
         self.rec_model.train()
-        batch_size = world.config['bpr_batch_size']
-        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=0)
-        total_batch = len(UILoader)
-        aver_loss = 0.
-        for batch_i, train_data in tqdm(enumerate(UILoader), total=len(UILoader), disable=False):
-            batch_users = train_data[0].long().to(world.device)
-            batch_pos = train_data[1].long().to(world.device)
-            batch_neg = train_data[2].long().to(world.device)
-            l_main = utils.computeBPR(self.rec_model, batch_users, batch_pos, batch_neg)
-            self.optimizer.zero_grad()
-            l_main.backward()
-            self.optimizer.step()
-            aver_loss += l_main.cpu().item()
-        aver_loss = aver_loss / (total_batch * batch_size)
-        if self.tensorboard is not None:
-            self.tensorboard.add_scalar(f'Loss/BPR', aver_loss, self.epoch)
-        time_info = utils.timer.dict()
-        utils.timer.zero()
-        print(f"BPR Loss: {aver_loss:.3f}-{time_info}")
+        batch_size = world.config['train_batch_size']
+        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+        aver_loss = {}
+        for key in Loss:
+            aver_loss[key.value] = 0.
+        self.rec_model.prepare_each_epoch()
+        with tqdm(enumerate(UILoader), file=sys.stdout, total=len(UILoader),
+                  desc='[' + world.model + '] Epoch ' + str(self.epoch).zfill(3)) as t:
+            for _, train_data in t:
+                batch_users = train_data[0].long().to(world.device)
+                batch_pos = train_data[1].long().to(world.device)
+                batch_neg = train_data[2].long().to(world.device)
+                losses = self.rec_model.calculate_loss(batch_users, batch_pos, batch_neg)
+                loss_all = torch.stack(list(losses.values())).sum(dim=0)
+                self.optimizer.zero_grad()
+                loss_all.backward()
+                self.optimizer.step()
+                for key in losses.keys():
+                    aver_loss[key] += losses[key].cpu().item()
+                t.set_postfix(
+                    loss_bpr=aver_loss[Loss.BPR.value] / (batch_size * len(UILoader)),
+                    loss_ssl=aver_loss[Loss.SSL.value] / (batch_size * len(UILoader))
+                )
+        if world.tensorboard_enable:
+            self.tensorboard.add_scalar(f'Loss/BPR', aver_loss[Loss.BPR.value] / (batch_size * len(UILoader)),
+                                        self.epoch)
+            self.tensorboard.add_scalar(f'Loss/SSL', aver_loss[Loss.SSL.value] / (batch_size * len(UILoader)),
+                                        self.epoch)
 
     def __procedure_test(self):
         stop_metric = Metrics.Recall.value
-        if self.epoch < world.test_start_epoch and self.epoch % 5 == 0:
-            print("【TEST】")
+        if self.epoch == 0 or (self.epoch < world.test_start_epoch and self.epoch % 5 == 0):
             self.best_result = self.__Test()
-            print(self.best_result)
-        elif self.epoch > world.test_start_epoch and self.epoch % world.test_verbose == 0:
-            print("【TEST】")
+            print('\033[0;31m' + str(self.best_result) + '\033[0m')
+        elif self.epoch >= world.test_start_epoch and self.epoch % world.test_verbose_epoch == 0:
             result = self.__Test()
-            print(result)
-            if result[stop_metric] > self.best_result[stop_metric]:
+            if len(world.topKs) == 1:
+                now = result[stop_metric]
+                best = self.best_result[stop_metric]
+            else:
+                now = result[stop_metric][len(world.topKs) - 1]
+                best = self.best_result[stop_metric][len(world.topKs) - 1]
+            if now > best:
                 self.stopping_step = 0
                 self.best_result = result
-                print("Find a better model")
-            else:
+                print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
+                if world.pretrain_output_enable:
+                    output = world.pretrain_folder + world.dataset + '_' + world.model + '.pretrain'
+                    torch.save(self.rec_model.state_dict(), output)
+            elif world.early_stop_enable:
+                print('\033[0;32m' + str(result) + '\033[0m')
                 self.stopping_step += 1
-                if self.stopping_step >= world.early_stop_cnt:
+                if self.stopping_step >= world.early_stop_epoch_cnt:
                     print(f"early stop triggerd at epoch {self.epoch}")
                     self.stopping_step = -1
+            else:
+                print('\033[0;32m' + str(result) + '\033[0m')
 
     def __Test(self):
         self.rec_model.eval()
         u_batch_size = world.config['test_u_batch_size']
         dataset = self.rec_model.ui_dataset
         testDict: dict = dataset.testDict
-        max_K = max(world.topks)
-        if world.config['multicore'] == 1:
-            pool = multiprocessing.Pool(multiprocessing.cpu_count() // 2)
-        results = {'precision': np.zeros(len(world.topks)),
-                   'recall': np.zeros(len(world.topks)),
-                   'ndcg': np.zeros(len(world.topks))}
+        max_K = max(world.topKs)
+        results = {Metrics.Precision.value: np.zeros(len(world.topKs)),
+                   Metrics.NDCG.value: np.zeros(len(world.topKs)),
+                   Metrics.Recall.value: np.zeros(len(world.topKs))}
         with torch.no_grad():
             users = list(testDict.keys())
             try:
                 assert u_batch_size <= len(users) / 10
             except AssertionError:
-                print(f"test_u_batch_size is too big for this dataset, try a small one {len(users) // 10}")
+                pass
             users_list = []
             rating_list = []
             groundTrue_list = []
@@ -216,45 +232,41 @@ class Manager:
             assert total_batch == len(users_list)
             X = zip(rating_list, groundTrue_list)
 
-            def test_one_batch(X):
-                sorted_items = X[0].numpy()
-                groundTrue = X[1]
-                r = utils.getLabel(groundTrue, sorted_items)
+            def test_one_batch(batch):
+                sorted_items = batch[0].numpy()
+                label = batch[1]
+                r = utils.getLabel(label, sorted_items)
                 pre, recall, ndcg = [], [], []
-                for k in world.topks:
-                    ret = utils.RecallPrecision_ATk(groundTrue, r, k)
-                    pre.append(ret['precision'])
-                    recall.append(ret['recall'])
-                    ndcg.append(utils.NDCGatK_r(groundTrue, r, k))
-                return {'recall': np.array(recall),
-                        'precision': np.array(pre),
-                        'ndcg': np.array(ndcg)}
+                for k in world.topKs:
+                    ret = utils.RecallPrecision_ATk(label, r, k)
+                    pre.append(ret[Metrics.Precision.value])
+                    recall.append(ret[Metrics.Recall.value])
+                    ndcg.append(utils.NDCGatK_r(label, r, k))
+                return {Metrics.Recall.value: np.array(recall),
+                        Metrics.Precision.value: np.array(pre),
+                        Metrics.NDCG.value: np.array(ndcg)}
 
-            if world.config['multicore'] == 1:
-                pre_results = pool.map(test_one_batch, X)
-            else:
-                pre_results = []
-                for x in X:
-                    pre_results.append(test_one_batch(x))
+            pre_results = []
+            for x in X:
+                pre_results.append(test_one_batch(x))
             for result in pre_results:
-                results['recall'] += result['recall']
-                results['precision'] += result['precision']
-                results['ndcg'] += result['ndcg']
-            results['recall'] /= float(len(users))
-            results['precision'] /= float(len(users))
-            results['ndcg'] /= float(len(users))
+                results[Metrics.Recall.value] += result[Metrics.Recall.value]
+                results[Metrics.Precision.value] += result[Metrics.Precision.value]
+                results[Metrics.NDCG.value] += result[Metrics.NDCG.value]
+            results[Metrics.Recall.value] /= float(len(users))
+            results[Metrics.Precision.value] /= float(len(users))
+            results[Metrics.NDCG.value] /= float(len(users))
             if self.tensorboard is not None:
-                self.tensorboard.add_scalars(f'Test/Recall@{world.topks}',
-                                             {str(world.topks[i]): results['recall'][i] for i in
-                                              range(len(world.topks))}, self.epoch)
-                self.tensorboard.add_scalars(f'Test/Precision@{world.topks}',
-                                             {str(world.topks[i]): results['precision'][i] for i in
-                                              range(len(world.topks))}, self.epoch)
-                self.tensorboard.add_scalars(f'Test/NDCG@{world.topks}',
-                                             {str(world.topks[i]): results['ndcg'][i] for i in range(len(world.topks))},
+                self.tensorboard.add_scalars(f'Test/Recall@{world.topKs}',
+                                             {str(world.topKs[i]): results[Metrics.Recall.value][i] for i in
+                                              range(len(world.topKs))}, self.epoch)
+                self.tensorboard.add_scalars(f'Test/Precision@{world.topKs}',
+                                             {str(world.topKs[i]): results[Metrics.Precision.value][i] for i in
+                                              range(len(world.topKs))}, self.epoch)
+                self.tensorboard.add_scalars(f'Test/NDCG@{world.topKs}',
+                                             {str(world.topKs[i]): results[Metrics.NDCG.value][i] for i in
+                                              range(len(world.topKs))},
                                              self.epoch)
-            if world.config['multicore'] == 1:
-                pool.close()
             return results
 
     def __close(self):
