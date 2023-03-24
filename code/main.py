@@ -118,7 +118,7 @@ class Manager:
         KGLoader = DataLoader(self.rec_model.kg_dataset, batch_size=4096, drop_last=False)
         trans_loss = 0.
         with tqdm(KGLoader, file=sys.stdout, total=len(KGLoader),
-                  desc='Trans Epoch ' + str(world.epoch).zfill(3)) as t:
+                  desc='Trans Epoch ' + str(world.epoch).zfill(3), disable=not world.tqdm_enable) as t:
             for data in t:
                 heads = data[0].to(world.device)
                 relations = data[1].to(world.device)
@@ -142,7 +142,7 @@ class Manager:
             aver_loss[key.value] = 0.
         self.rec_model.prepare_each_epoch()
         with tqdm(enumerate(UILoader), file=sys.stdout, total=len(UILoader),
-                  desc='[' + world.model + '] Epoch ' + str(self.epoch).zfill(3)) as t:
+                  desc='[' + world.model + '] Epoch ' + str(self.epoch).zfill(3), disable=not world.tqdm_enable) as t:
             for _, train_data in t:
                 batch_users = train_data[0].long().to(world.device)
                 batch_pos = train_data[1].long().to(world.device)

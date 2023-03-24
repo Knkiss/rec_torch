@@ -169,41 +169,21 @@ class GraphAttentionLayer(nn.Module):
 class QGrouping(nn.Module):
     def __init__(self):
         super(QGrouping, self).__init__()
-        self.config = world.config
-
         self.q_dim = 4          # 分组数量，结果embedding多少个组
         self.k_dim = 64         # 中间计算维度
         self.v_dim = 64         # 值维度，结果embedding多少个维度
         self.latent_dim = 64    # 输入维度
-
-        self.Q = nn.Parameter(torch.Tensor(self.k_dim, self.q_dim))             # [k,q]
+        self.Q = nn.Parameter(torch.Tensor(self.k_dim, self.q_dim))         # [k,q]
+        self.W_K = nn.Parameter(torch.Tensor(self.latent_dim, self.k_dim))  # [d,k]
+        self.W_V = nn.Parameter(torch.Tensor(self.latent_dim, self.v_dim))  # [d,v]
         nn.init.xavier_uniform_(self.Q, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self.W_K, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self.W_V, gain=nn.init.calculate_gain('relu'))
 
-        if world.use_linear:
-            self.W_K = nn.Linear(self.latent_dim, self.k_dim, bias=False)   # [d,k]
-            self.W_V = nn.Linear(self.latent_dim, self.v_dim, bias=False)   # [d,v]
-        else:
-            self.W_K = nn.Parameter(torch.Tensor(self.latent_dim, self.k_dim))   # [d,k]
-            self.W_V = nn.Parameter(torch.Tensor(self.latent_dim, self.v_dim))   # [d,v]
-            nn.init.xavier_uniform_(self.W_K, gain=nn.init.calculate_gain('relu'))
-            nn.init.xavier_uniform_(self.W_V, gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, all_users, all_items):
-        num_users = all_users.shape[0]
-        num_items = all_items.shape[0]
-        all_emb = torch.cat((all_users, all_items))     # [N,d]
-
-        if world.use_linear:
-            K = self.W_K(all_emb).unsqueeze(1)              # [N,1,k]
-            V = self.W_V(all_emb).unsqueeze(2)              # [N,v,1]
-            att = torch.matmul(K, self.Q)                   # [N,1,q]
-            att = torch.softmax(att, dim=2)
-            final = torch.matmul(V, att)                 # [N,v,q]
-        else:
-            K = torch.matmul(all_emb, self.W_K).unsqueeze(1)    # [N,1,k]
-            V = torch.matmul(all_emb, self.W_V).unsqueeze(2)    # [N,v,1]
-            att = torch.matmul(K, self.Q)                       # [N,1,q]
-            att = torch.softmax(att, dim=2)
-            final = torch.matmul(V, att)
-
-        return torch.split(final, [num_users, num_items])
+    def forward(self, emb):
+        K = torch.matmul(emb, self.W_K).unsqueeze(1)      # [N,1,k]
+        V = torch.matmul(emb, self.W_V).unsqueeze(2)      # [N,v,1]
+        att = torch.matmul(K, self.Q)                     # [N,1,q]
+        att = torch.softmax(att, dim=2)
+        final = torch.matmul(V, att)                      # [N,v,q]
+        return final

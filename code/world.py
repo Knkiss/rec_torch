@@ -11,7 +11,7 @@ from os.path import join
 import torch
 
 # region QKV model version @default=False
-use_linear = False
+QKV_only_user = True
 # endregion
 
 # region KGCL model version @default=False
@@ -67,7 +67,7 @@ def parse_args():
                         help="the batch size of users for testing")
 
     # tensorboard
-    parser.add_argument('--comment', type=str, default="")
+    parser.add_argument('--nohup', type=bool, default=False)
     return parser.parse_args()
 
 
@@ -77,7 +77,6 @@ args = parse_args()
 model = args.model
 dataset = args.dataset
 TRAIN_epochs = args.epochs
-comment = args.comment
 seed = args.seed
 decay = args.decay
 topKs = eval(args.topKs)
@@ -97,7 +96,8 @@ device = torch.device('cuda' if GPU else "cpu")
 # endregion
 
 # region 文件夹路径索引
-ROOT_PATH = "D://byl//rec_torch"
+# ROOT_PATH = "D://byl//rec_torch"
+ROOT_PATH = "/home/byl/code/rec_torch/"
 CODE_PATH = join(ROOT_PATH, 'code')
 DATA_PATH = join(ROOT_PATH, 'data')
 BOARD_PATH = join(CODE_PATH, 'tensorboard_cache')
@@ -117,7 +117,7 @@ test_verbose_epoch = 1  # 测试间隔epoch
 
 # region 预训练模型Emb加载和保存
 pretrain_input_enable = False  # 使用预训练Emb
-pretrain_output_enable = True  # 保存当前模型Emb
+pretrain_output_enable = False  # 保存当前模型Emb
 pretrain_input = 'lightGCN'  # 预训练Emb文件名
 pretrain_folder = 'pretrain/'  # 预训练Emb文件夹名
 # endregion
@@ -129,6 +129,7 @@ mail_user = '962443828'
 mail_pass = 'jbmsrsjphuhgbfgd'
 mail_sender = '962443828@qq.com'
 mail_receivers = ['962443828@qq.com']
+mail_comment = ''
 # endregion
 
 # region 数据集设置
@@ -151,10 +152,13 @@ elif dataset == 'lastfm':
     early_stop_epoch_cnt = 30
 # endregion
 
-# region 需要使用预训练模型设置
-if model == 'QKV':
+# region 模型设置
+if model == 'KGCL':
+    pretrain_input_enable = False
+    pretrain_input = 'KGCL'
+elif model == 'QKV':
     pretrain_input_enable = True
-    pretrain_input = 'SGL'
+    pretrain_input = 'lightGCN'
     test_start_epoch = 0
     early_stop_enable = True
     early_stop_epoch_cnt = 20
@@ -164,4 +168,12 @@ elif model == 'GraphCL':
     test_start_epoch = 0
     early_stop_enable = True
     early_stop_epoch_cnt = 20
+# endregion
+
+# region 在Linux上后台训练的训练设置
+linux_nohup = args.nohup
+tqdm_enable = True
+if linux_nohup:
+    tqdm_enable = False
+    mail_on_stop_enable = True
 # endregion

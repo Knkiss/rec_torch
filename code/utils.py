@@ -282,8 +282,8 @@ def mail_on_stop(results):
         return
 
     content = '模型: ' + str(world.model) + '\n数据集: ' + str(world.dataset) + '\n结果: ' + str(results)
-    if world.comment:
-        content += '\n' + world.comment
+    if world.mail_comment:
+        content += '\n' + world.mail_comment
     message = MIMEText(content, 'plain', 'utf-8')
     message['Subject'] = '服务器代码运行完毕'
     message['From'] = world.mail_sender

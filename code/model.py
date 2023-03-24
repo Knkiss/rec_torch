@@ -266,9 +266,10 @@ class SGL(AbstractRecModel):
         super().__init__()
         self.graph_1 = None
         self.graph_2 = None
-        self.lightGCN = module.LightGCN()
-        if world.model == 'GraphCL':
-            self.QGrouping = module.QGrouping()
+        if world.model == 'SGL':
+            self.model = module.LightGCN()
+        elif world.model == 'GraphCL':
+            self.model = QKV()
 
     def create_adj_mat(self, is_subgraph=True, aug_type=0):
         training_user = self.ui_dataset.trainUser
@@ -327,11 +328,8 @@ class SGL(AbstractRecModel):
         self.graph_2 = self.create_adj_mat(True, aug_type=1)
 
     def calculate_embedding_graph(self, all_users, all_items, graph):
-        all_users, all_items = self.lightGCN(all_users, all_items, graph)
-        if world.model == 'GraphCL':
-            all_users, all_items = self.QGrouping(all_users, all_items)
-            all_users = torch.reshape(all_users, shape=[self.num_users, self.QGrouping.v_dim * self.QGrouping.q_dim])
-            all_items = torch.reshape(all_items, shape=[self.num_items, self.QGrouping.v_dim * self.QGrouping.q_dim])
+        if world.model == 'SGL' or world.model == 'GraphCL':
+            all_users, all_items = self.model(all_users, all_items, graph)
         return all_users, all_items
 
     def calculate_embedding(self):
@@ -358,15 +356,8 @@ class QKV(AbstractRecModel):
         self.lightGCN = module.LightGCN()
         self.QGrouping = module.QGrouping()
 
-    def calculate_embedding_graph(self, all_users, all_items, graph):
-        all_users, all_items = self.lightGCN(all_users, all_items, graph)
-        all_users, all_items = self.QGrouping(all_users, all_items)
-        all_users = torch.reshape(all_users, shape=[self.num_users, self.QGrouping.v_dim * self.QGrouping.q_dim])
-        all_items = torch.reshape(all_items, shape=[self.num_items, self.QGrouping.v_dim * self.QGrouping.q_dim])
-        return all_users, all_items
-
     def calculate_embedding(self):
-        return self.calculate_embedding_graph(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
+        return self.forward(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
         losses = {}
@@ -374,3 +365,15 @@ class QKV(AbstractRecModel):
         losses[Loss.BPR.value] = utils.loss_BPR(all_users, all_items, users, pos, neg)
         losses[Loss.Regulation.value] = utils.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
         return losses
+
+    def forward(self, all_users, all_items, graph):
+        all_users, all_items = self.lightGCN(all_users, all_items, graph)
+        if not world.QKV_only_user:
+            all_users, all_items = self.QGrouping(all_users), self.QGrouping(all_items)
+            all_users = torch.reshape(all_users, shape=[self.num_users, self.QGrouping.v_dim * self.QGrouping.q_dim])
+            all_items = torch.reshape(all_items, shape=[self.num_items, self.QGrouping.v_dim * self.QGrouping.q_dim])
+        else:
+            all_users = self.QGrouping(all_users)
+            all_users = torch.mean(all_users, dim=2)
+        return all_users, all_items
+
