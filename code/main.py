@@ -68,7 +68,7 @@ class Manager:
         self.procedure = [Procedure.Train_Rec, Procedure.Test]
         if world.model == 'KGCL':
             self.rec_model = model.KGCL()
-            if not world.remove_Trans:
+            if not world.KGCL_remove_Trans:
                 self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
         elif world.model == 'QKV':
             self.rec_model = model.QKV()
@@ -79,7 +79,7 @@ class Manager:
         self.rec_model = self.rec_model.to(world.device)
 
     def __prepare_optimizer(self):
-        self.optimizer = optim.Adam(self.rec_model.parameters(), lr=world.config['lr'])
+        self.optimizer = optim.Adam(self.rec_model.parameters(), lr=world.learning_rate)
         self.scheduler = lr_scheduler.MultiStepLR(self.optimizer, milestones=[1500, 2500], gamma=0.2)  # 数据集区别
 
     def __prepare_tensorboard(self):
@@ -88,13 +88,10 @@ class Manager:
             world.tensorboard_instance = self.tensorboard
 
     def print_rec_module_info(self):
-        print("---------------------")
+        print("--------------------- Modules  ---------------------")
         for i in self.rec_model.modules():
             print(i)
-        print("---------------------")
-        for i, j in self.rec_model.state_dict().items():
-            print(i, ' :', j.shape)
-        print("---------------------")
+        print("----------------------------------------------------")
 
     def __loop_procedure(self):
         for self.epoch in range(0, world.TRAIN_epochs):
@@ -135,7 +132,7 @@ class Manager:
 
     def __procedure_train_Rec(self):
         self.rec_model.train()
-        batch_size = world.config['train_batch_size']
+        batch_size = world.train_batch_size
         UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
         aver_loss = {Loss.BPR.value: 0.}
         for key in Loss:
@@ -195,7 +192,7 @@ class Manager:
 
     def __Test(self):
         self.rec_model.eval()
-        u_batch_size = world.config['test_u_batch_size']
+        u_batch_size = world.test_u_batch_size
         dataset = self.rec_model.ui_dataset
         testDict: dict = dataset.testDict
         max_K = max(world.topKs)
@@ -265,8 +262,7 @@ class Manager:
                                               range(len(world.topKs))}, self.epoch)
                 self.tensorboard.add_scalars(f'Test/NDCG@{world.topKs}',
                                              {str(world.topKs[i]): results[Metrics.NDCG.value][i] for i in
-                                              range(len(world.topKs))},
-                                             self.epoch)
+                                              range(len(world.topKs))}, self.epoch)
             return results
 
     def __close(self):

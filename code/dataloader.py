@@ -24,12 +24,8 @@ import world
 
 
 class UIDataset(Dataset):
-    def __init__(self, path=join(world.DATA_PATH, world.dataset), config=world.config):
+    def __init__(self, path=join(world.DATA_PATH, world.dataset)):
         print(f'loading [{path}]')
-        self.split = config['A_split']
-        self.folds = config['A_n_fold']
-        self.mode_dict = {'train': 0, "test": 1}
-        self.mode = self.mode_dict['train']
         self.n_user = 0
         self.m_item = 0
         train_file = path + '/train.txt'
@@ -129,18 +125,6 @@ class UIDataset(Dataset):
     def allPos(self):
         return self._allPos
 
-    def _split_A_hat(self, A):
-        A_fold = []
-        fold_len = (self.n_users + self.m_items) // self.folds
-        for i_fold in range(self.folds):
-            start = i_fold * fold_len
-            if i_fold == self.folds - 1:
-                end = self.n_users + self.m_items
-            else:
-                end = (i_fold + 1) * fold_len
-            A_fold.append(utils.convert_sp_mat_to_sp_tensor(A[start:end]).coalesce().to(world.device))
-        return A_fold
-
     def getSparseGraph(self):
         print("loading adjacency matrix")
         if self.Graph is None:
@@ -170,14 +154,8 @@ class UIDataset(Dataset):
                 end = time()
                 print(f"costing {end - s}s, saved norm_mat...")
                 sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
-
-            if self.split:
-                self.Graph = self._split_A_hat(norm_adj)
-                print("done split matrix")
-            else:
-                self.Graph = utils.convert_sp_mat_to_sp_tensor(norm_adj)
-                self.Graph = self.Graph.coalesce().to(world.device)
-                print("don't split the matrix")
+            self.Graph = utils.convert_sp_mat_to_sp_tensor(norm_adj)
+            self.Graph = self.Graph.coalesce().to(world.device)
         return self.Graph
 
     def __build_test(self):

@@ -11,120 +11,90 @@ from os.path import join
 
 import torch
 
-# region QKV model version @default=False
-QKV_only_user = True
+# region 模型参数设置
+# region 推荐
+seed = 2020
+epoch = 0
+TRAIN_epochs = 1000
+embedding_dim = 64
+topKs = [10, 20]
+decay = 1e-4
 # endregion
 
-# region KGCL model version @default=False
-user_item_preference = False    # 提升
-item_entity_random_walk = False
-remove_Trans = False            # 提升
+# region LightGCN
+lightGCN_layers = 3
+lightGCN_keep_prob = 0.8
+lightGCN_dropout = True
+# endregion
+
+# region SGL
+ssl_temp = 0.2  # 对比loss温度系数
+ssl_reg = 0.1  # 对比loss比例
+ssl_ratio = 0.5  # 图生成比例
+# endregion
+
+# region QKV
+QKV_only_user = False
+# endregion
+
+# region KGCL
+KGCL_user_item_preference = False  # 提升
+KGCL_item_entity_random_walk = False
+KGCL_remove_Trans = False  # 提升
 
 entity_num_per_item = 10  # 一个item取多少个entity
 kg_p_drop = 0.5  # kg去边概率
 ui_p_drop = 0.1  # ui去边概率
 # endregion
-
-# region SGL model parameter
-ssl_temp = 0.2   # 对比loss温度系数
-ssl_reg = 0.1    # 对比loss比例
-ssl_ratio = 0.5  # 图生成比例
 # endregion
+
+# region 命令行参数读取
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=2020, help='random seed')
-    # read
     parser.add_argument('--model', type=str, default='MF',
-                        help="available datasets: [KGCL, MF, lightGCN, SGL, QKV, GraphCL]")
+                        help="[KGCL, MF, lightGCN, SGL, QKV, GraphCL]")
     parser.add_argument('--dataset', type=str, default='lastfm',
-                        help="available datasets: [amazonbook, movielens1m, yelp2018, citeulikea, lastfm]")
-    parser.add_argument('--bpr_batch', type=int, default=2048,
-                        help="the batch size for bpr loss training procedure")
-
-    # train
-    parser.add_argument('--epochs', type=int, default=1000)
+                        help="[amazonbook, movielens1m, yelp2018, citeulikea, lastfm]")
+    parser.add_argument('--train_batch', type=int, default=2048)
+    parser.add_argument('--test_batch', type=int, default=4096)
     parser.add_argument('--lr', type=float, default=0.001)
-
-    # parameters
-    parser.add_argument('--a_fold', type=int, default=100,
-                        help="the fold num used to split large adj matrix, like gowalla")
-    parser.add_argument('--recDim', type=int, default=64,
-                        help="the embedding size of lightGCN")
-    parser.add_argument('--layer', type=int, default=3,
-                        help="the layer num of lightGCN")
-    parser.add_argument('--keepProb', type=float, default=0.8,
-                        help="the batch size for bpr loss training procedure")
-    parser.add_argument('--dropout', type=int, default=1,
-                        help="using the dropout or not")
-    parser.add_argument('--decay', type=float, default=1e-4,
-                        help="the weight decay for l2 normalization")
-
-    # test
-    parser.add_argument('--topKs', nargs='?', default="[10, 20]",
-                        help="@k test list")
-    parser.add_argument('--testBatch', type=int, default=4096,
-                        help="the batch size of users for testing")
-
-    # tensorboard
     parser.add_argument('--nohup', type=bool, default=False)
     return parser.parse_args()
 
 
-# region 命令行args读取
-epoch = 0
 args = parse_args()
 model = args.model
 dataset = args.dataset
-TRAIN_epochs = args.epochs
-seed = args.seed
-decay = args.decay
-topKs = eval(args.topKs)
-config = {}
-config['A_split'] = False
-config['A_n_fold'] = args.a_fold
-config['latent_dim_rec'] = args.recDim
-config['lightGCN_n_layers'] = args.layer
-config['keep_prob'] = args.keepProb
-config['dropout'] = args.dropout
-config['lr'] = args.lr
-config['decay'] = args.decay
-config['train_batch_size'] = args.bpr_batch
-config['test_u_batch_size'] = args.testBatch
+learning_rate = args.lr
+train_batch_size = args.train_batch
+test_u_batch_size = args.test_batch
 GPU = torch.cuda.is_available()
 device = torch.device('cuda' if GPU else "cpu")
 # endregion
 
-# region 文件夹路径索引
+# region 功能设置
 ROOT_PATH = "F:/Code/MINE/rec_torch"
 if platform.system().lower() == 'linux':
     ROOT_PATH = "/home/byl/code/rec_torch/"
 CODE_PATH = join(ROOT_PATH, 'code')
 DATA_PATH = join(ROOT_PATH, 'data')
 BOARD_PATH = join(CODE_PATH, 'tensorboard_cache')
-# endregion
 
-# region tensorboard 结果可视化
-tensorboard_enable = False             # 使用tensorboard
+tensorboard_enable = False  # 使用tensorboard
 tensorboard_instance = None
-# endregion
 
-# region 测试与早停设置
 early_stop_enable = True  # 早停启用
-early_stop_epoch_cnt = 10  # 早停计数器
+early_stop_epoch_cnt = 15  # 早停计数器
 test_start_epoch = 25  # 测试开始epoch
 test_verbose_epoch = 1  # 测试间隔epoch
-# endregion
 
-# region 预训练模型Emb加载和保存
 pretrain_input_enable = False  # 使用预训练Emb
 pretrain_output_enable = False  # 保存当前模型Emb
 pretrain_input = 'lightGCN'  # 预训练Emb文件名
 pretrain_folder = 'pretrain/'  # 预训练Emb文件夹名
-# endregion
 
-# region 邮件提醒相关设置
 mail_on_stop_enable = False  # 程序运行结束时发送邮件
 mail_host = 'smtp.qq.com'
 mail_user = '962443828'
@@ -132,6 +102,12 @@ mail_pass = 'jbmsrsjphuhgbfgd'
 mail_sender = '962443828@qq.com'
 mail_receivers = ['962443828@qq.com']
 mail_comment = ''
+
+linux_nohup = args.nohup
+tqdm_enable = True
+if linux_nohup:
+    tqdm_enable = False
+    mail_on_stop_enable = True
 # endregion
 
 # region 数据集设置
@@ -172,10 +148,13 @@ elif model == 'GraphCL':
     early_stop_epoch_cnt = 20
 # endregion
 
-# region 在Linux上后台训练的训练设置
-linux_nohup = args.nohup
-tqdm_enable = True
-if linux_nohup:
-    tqdm_enable = False
-    mail_on_stop_enable = True
-# endregion
+
+print('\n--------------------- Settings ---------------------')
+i = 0
+a = globals()
+for i in a:
+    if isinstance(a[i], (float, str, int, list, bool)):
+        if a[i] == 'i' or i.__contains__('__'):
+            continue
+        print(i + ": " + str(a[i]))
+print('----------------------------------------------------')

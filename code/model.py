@@ -10,6 +10,7 @@ from torch import nn
 
 import dataloader
 import module
+import world
 from dataloader import *
 from main import Loss
 
@@ -17,13 +18,12 @@ from main import Loss
 class AbstractRecModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.config = world.config
         self.ui_dataset = dataloader.UIDataset()
         self.num_users = self.ui_dataset.n_users
         self.num_items = self.ui_dataset.m_items
         self.Graph = self.ui_dataset.getSparseGraph()
 
-        self.latent_dim = self.config['latent_dim_rec']
+        self.embedding_dim = world.embedding_dim
 
         if world.pretrain_input_enable:
             emb = torch.load(world.pretrain_folder + world.dataset + '_' + world.pretrain_input + '.pretrain')
@@ -32,8 +32,8 @@ class AbstractRecModel(nn.Module):
             self.embedding_user.requires_grad_()
             self.embedding_item.requires_grad_()
         else:
-            self.embedding_user = torch.nn.Embedding(num_embeddings=self.num_users, embedding_dim=self.latent_dim)
-            self.embedding_item = torch.nn.Embedding(num_embeddings=self.num_items, embedding_dim=self.latent_dim)
+            self.embedding_user = torch.nn.Embedding(num_embeddings=self.num_users, embedding_dim=self.embedding_dim)
+            self.embedding_item = torch.nn.Embedding(num_embeddings=self.num_items, embedding_dim=self.embedding_dim)
             nn.init.normal_(self.embedding_user.weight, std=0.1)
             nn.init.normal_(self.embedding_item.weight, std=0.1)
 
@@ -92,24 +92,24 @@ class KGCL(AbstractRecModel):
         self.num_entities = self.kg_dataset.entity_count
         self.num_relations = self.kg_dataset.relation_count
         print("user:{}, item:{}, entity:{}".format(self.num_users, self.num_items, self.num_entities))
-        self.n_layers = self.config['lightGCN_n_layers']
+        self.n_layers = world.lightGCN_layers
 
         self.contrast_views = {}
 
-        self.embedding_entity = torch.nn.Embedding(num_embeddings=self.num_entities + 1, embedding_dim=self.latent_dim)
+        self.embedding_entity = torch.nn.Embedding(num_embeddings=self.num_entities + 1, embedding_dim=self.embedding_dim)
         self.embedding_relation = torch.nn.Embedding(num_embeddings=self.num_relations + 1,
-                                                     embedding_dim=self.latent_dim)
+                                                     embedding_dim=self.embedding_dim)
         nn.init.normal_(self.embedding_entity.weight, std=0.1)
         nn.init.normal_(self.embedding_relation.weight, std=0.1)
 
         self.lightGCN = module.LightGCN()
 
-        self.W_R = nn.Parameter(torch.Tensor(self.num_relations, self.latent_dim, self.latent_dim))
+        self.W_R = nn.Parameter(torch.Tensor(self.num_relations, self.embedding_dim, self.embedding_dim))
         nn.init.xavier_uniform_(self.W_R, gain=nn.init.calculate_gain('relu'))
 
         self.Graph = self.ui_dataset.getSparseGraph()
         self.kg_dict, self.item2relations = self.kg_dataset.get_kg_dict(self.num_items)
-        self.gat = module.GAT(self.latent_dim, self.latent_dim, dropout=0.4, alpha=0.2).train()
+        self.gat = module.GAT(self.embedding_dim, self.embedding_dim, dropout=0.4, alpha=0.2).train()
         print(f"KGCL is ready to go!")
 
     def ui_drop_weighted(self, item_mask):
@@ -117,7 +117,7 @@ class KGCL(AbstractRecModel):
         n_nodes = self.num_users + self.num_items
         item_np = self.ui_dataset.trainItem
         keep_idx = list()
-        if world.user_item_preference:
+        if world.KGCL_user_item_preference:
             for i, j in enumerate(item_mask):
                 if j:
                     keep_idx.append(i)
@@ -172,7 +172,7 @@ class KGCL(AbstractRecModel):
     def item_kg_stability(self, view1, view2):
         kgv1_ro = self.cal_item_embedding_from_kg(view1)  # items * dims
         kgv2_ro = self.cal_item_embedding_from_kg(view2)  # items * dims
-        if world.user_item_preference:
+        if world.KGCL_user_item_preference:
             userList = torch.LongTensor(self.ui_dataset.trainUser).to(world.device)
             user1_emb = self.embedding_user(userList)  # inters * dims
             user2_emb = self.embedding_user(userList)  # inters * dims
@@ -200,7 +200,7 @@ class KGCL(AbstractRecModel):
         return contrast_views
 
     def get_kg_views(self):
-        if world.item_entity_random_walk:
+        if world.KGCL_item_entity_random_walk:
             kg, _ = self.kg_dataset.get_kg_dict_random(self.num_items)
         else:
             kg = self.kg_dict

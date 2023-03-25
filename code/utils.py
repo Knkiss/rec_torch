@@ -206,7 +206,7 @@ def NDCGatK_r(test_data, r, k):
 
 
 def minibatch(*tensors, **kwargs):
-    batch_size = kwargs.get('batch_size', world.config['train_batch_size'])
+    batch_size = kwargs.get('batch_size', world.train_batch_size)
     if len(tensors) == 1:
         tensor = tensors[0]
         for i in range(0, len(tensor), batch_size):

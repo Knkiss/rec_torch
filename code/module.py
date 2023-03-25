@@ -9,10 +9,9 @@ import world
 class LightGCN(nn.Module):
     def __init__(self):
         super().__init__()
-        self.config = world.config
-        self.n_layers = self.config['lightGCN_n_layers']
-        self.keep_prob = self.config['keep_prob']
-        self.dropout = self.config['dropout']
+        self.n_layers = world.lightGCN_layers
+        self.keep_prob = world.lightGCN_keep_prob
+        self.dropout = world.lightGCN_dropout
 
     def forward(self, all_users, all_items, graph):
         num_users = all_users.shape[0]
