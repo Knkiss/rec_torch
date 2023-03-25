@@ -137,7 +137,7 @@ class Manager:
         self.rec_model.train()
         batch_size = world.config['train_batch_size']
         UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-        aver_loss = {}
+        aver_loss = {Loss.BPR.value: 0.}
         for key in Loss:
             aver_loss[key.value] = 0.
         self.rec_model.prepare_each_epoch()

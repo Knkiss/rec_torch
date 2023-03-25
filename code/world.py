@@ -6,6 +6,7 @@
 @Date    ：2023/2/14 9:59
 """
 import argparse
+import platform
 from os.path import join
 
 import torch
@@ -35,9 +36,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
     # read
-    parser.add_argument('--model', type=str, default='KGCL',
+    parser.add_argument('--model', type=str, default='MF',
                         help="available datasets: [KGCL, MF, lightGCN, SGL, QKV, GraphCL]")
-    parser.add_argument('--dataset', type=str, default='amazonbook',
+    parser.add_argument('--dataset', type=str, default='lastfm',
                         help="available datasets: [amazonbook, movielens1m, yelp2018, citeulikea, lastfm]")
     parser.add_argument('--bpr_batch', type=int, default=2048,
                         help="the batch size for bpr loss training procedure")
@@ -96,8 +97,9 @@ device = torch.device('cuda' if GPU else "cpu")
 # endregion
 
 # region 文件夹路径索引
-# ROOT_PATH = "D://byl//rec_torch"
-ROOT_PATH = "/home/byl/code/rec_torch/"
+ROOT_PATH = "F:/Code/MINE/rec_torch"
+if platform.system().lower() == 'linux':
+    ROOT_PATH = "/home/byl/code/rec_torch/"
 CODE_PATH = join(ROOT_PATH, 'code')
 DATA_PATH = join(ROOT_PATH, 'data')
 BOARD_PATH = join(CODE_PATH, 'tensorboard_cache')

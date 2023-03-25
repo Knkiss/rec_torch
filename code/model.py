@@ -376,4 +376,3 @@ class QKV(AbstractRecModel):
             all_users = self.QGrouping(all_users)
             all_users = torch.mean(all_users, dim=2)
         return all_users, all_items
-
