@@ -8,11 +8,10 @@
 import torch.nn.functional as F
 from torch import nn
 
-import dataloader
-import module
-import world
-from dataloader import *
-from main import Loss
+from input import dataloader
+from train import module, losses
+from train.losses import Loss
+from input.dataloader import *
 
 
 class AbstractRecModel(nn.Module):
@@ -72,11 +71,14 @@ class Baseline(AbstractRecModel):
             self.model = module.LightGCN()
 
     def calculate_loss(self, users, pos, neg):
-        losses = {}
+        loss = {}
         all_users, all_items = self.calculate_embedding()
-        losses[Loss.BPR.value] = utils.loss_BPR(all_users, all_items, users, pos, neg)
-        losses[Loss.Regulation.value] = utils.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
-        return losses
+        if not world.SSM_Loss_enable:
+            loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        else:
+            loss[Loss.BPR.value] = losses.loss_SSM(all_users, all_items, users, pos)
+        loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
+        return loss
 
     def calculate_embedding(self):
         if world.model == 'MF':
@@ -96,7 +98,8 @@ class KGCL(AbstractRecModel):
 
         self.contrast_views = {}
 
-        self.embedding_entity = torch.nn.Embedding(num_embeddings=self.num_entities + 1, embedding_dim=self.embedding_dim)
+        self.embedding_entity = torch.nn.Embedding(num_embeddings=self.num_entities + 1,
+                                                   embedding_dim=self.embedding_dim)
         self.embedding_relation = torch.nn.Embedding(num_embeddings=self.num_relations + 1,
                                                      embedding_dim=self.embedding_dim)
         nn.init.normal_(self.embedding_entity.weight, std=0.1)
@@ -228,24 +231,24 @@ class KGCL(AbstractRecModel):
         return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
-        losses = {}
+        loss = {}
         all_users, all_items = self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
-        losses[Loss.BPR.value] = utils.loss_BPR(all_users, all_items, users, pos, neg)
-        losses[Loss.Regulation.value] = utils.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
+        loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
         uiv1, uiv2 = self.contrast_views["uiv1"], self.contrast_views["uiv2"]
         kgv1, kgv2 = self.contrast_views["kgv1"], self.contrast_views["kgv2"]
         usersV1_ro, itemsV1_ro = self.lightGCN_drop(uiv1, kgv1)
         usersV2_ro, itemsV2_ro = self.lightGCN_drop(uiv2, kgv2)
-        loss_ssl_item = utils.loss_info_nce(itemsV1_ro, itemsV2_ro, pos)
-        loss_ssl_user = utils.loss_info_nce(usersV1_ro, usersV2_ro, users)
-        losses[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
-        return losses
+        loss_ssl_item = losses.loss_info_nce(itemsV1_ro, itemsV2_ro, pos)
+        loss_ssl_user = losses.loss_info_nce(usersV1_ro, usersV2_ro, users)
+        loss[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
+        return loss
 
     def calculate_loss_transE(self, h, r, pos_t, neg_t):
-        loss = utils.loss_transE(self.embedding_item,
-                                 self.embedding_entity,
-                                 self.embedding_relation,
-                                 h, r, pos_t, neg_t)
+        loss = losses.loss_transE(self.embedding_item,
+                                  self.embedding_entity,
+                                  self.embedding_relation,
+                                  h, r, pos_t, neg_t)
         return loss
 
     def cal_item_embedding_from_kg(self, kg: dict):
@@ -297,8 +300,9 @@ class SGL(AbstractRecModel):
                 ratings_keep = R_prime.data
                 tmp_adj = sp.csr_matrix((ratings_keep, (user_np_keep, item_np_keep + self.num_users)),
                                         shape=(n_nodes, n_nodes))
-            if aug_type in [1, 2]:
-                keep_idx = utils.randint_choice(len(training_user), size=int(len(training_user) * (1 - world.ssl_ratio)),
+            else:
+                keep_idx = utils.randint_choice(len(training_user),
+                                                size=int(len(training_user) * (1 - world.ssl_ratio)),
                                                 replace=False)
                 user_np = np.array(training_user)[keep_idx]
                 item_np = np.array(training_item)[keep_idx]
@@ -336,18 +340,18 @@ class SGL(AbstractRecModel):
         return self.calculate_embedding_graph(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
-        losses = {}
+        loss = {}
         all_users, all_items = self.calculate_embedding()
         users_1, items_1 = self.calculate_embedding_graph(self.embedding_user.weight,
                                                           self.embedding_item.weight, self.graph_1)
         users_2, items_2 = self.calculate_embedding_graph(self.embedding_user.weight,
                                                           self.embedding_item.weight, self.graph_2)
-        losses[Loss.BPR.value] = utils.loss_BPR(all_users, all_items, users, pos, neg)
-        losses[Loss.Regulation.value] = utils.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
-        loss_ssl_item = utils.loss_info_nce(items_1, items_2, pos)
-        loss_ssl_user = utils.loss_info_nce(users_1, users_2, users)
-        losses[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
-        return losses
+        loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
+        loss_ssl_item = losses.loss_info_nce(items_1, items_2, pos)
+        loss_ssl_user = losses.loss_info_nce(users_1, users_2, users)
+        loss[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
+        return loss
 
 
 class QKV(AbstractRecModel):
@@ -360,11 +364,11 @@ class QKV(AbstractRecModel):
         return self.forward(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
-        losses = {}
+        loss = {}
         all_users, all_items = self.calculate_embedding()
-        losses[Loss.BPR.value] = utils.loss_BPR(all_users, all_items, users, pos, neg)
-        losses[Loss.Regulation.value] = utils.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
-        return losses
+        loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
+        return loss
 
     def forward(self, all_users, all_items, graph):
         all_users, all_items = self.lightGCN(all_users, all_items, graph)

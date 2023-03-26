@@ -46,6 +46,10 @@ entity_num_per_item = 10  # 一个item取多少个entity
 kg_p_drop = 0.5  # kg去边概率
 ui_p_drop = 0.1  # ui去边概率
 # endregion
+
+# region SSM Loss
+SSM_Loss_enable = False
+# endregion
 # endregion
 
 # region 命令行参数读取
@@ -53,9 +57,9 @@ ui_p_drop = 0.1  # ui去边概率
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='MF',
+    parser.add_argument('--model', type=str, default='lightGCN',
                         help="[KGCL, MF, lightGCN, SGL, QKV, GraphCL]")
-    parser.add_argument('--dataset', type=str, default='lastfm',
+    parser.add_argument('--dataset', type=str, default='citeulikea',
                         help="[amazonbook, movielens1m, yelp2018, citeulikea, lastfm]")
     parser.add_argument('--train_batch', type=int, default=2048)
     parser.add_argument('--test_batch', type=int, default=4096)

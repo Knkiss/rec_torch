@@ -18,22 +18,11 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import model
-import utils
+from util import utils
+from train import model, metrics
 import world
-
-
-class Loss(Enum):
-    BPR = 'BPR'
-    SSL = 'SSL'
-    TransE = 'TransE'
-    Regulation = 'reg'
-
-
-class Metrics(Enum):
-    Recall = "Recall"
-    Precision = "Precision"
-    NDCG = "NDCG"
+from train.losses import Loss
+from train.metrics import Metrics
 
 
 class Procedure(Enum):
@@ -235,10 +224,10 @@ class Manager:
                 r = utils.getLabel(label, sorted_items)
                 pre, recall, ndcg = [], [], []
                 for k in world.topKs:
-                    ret = utils.RecallPrecision_ATk(label, r, k)
+                    ret = metrics.RecallPrecision_topk(label, r, k)
                     pre.append(ret[Metrics.Precision.value])
                     recall.append(ret[Metrics.Recall.value])
-                    ndcg.append(utils.NDCGatK_r(label, r, k))
+                    ndcg.append(metrics.NDCG_topK(label, r, k))
                 return {Metrics.Recall.value: np.array(recall),
                         Metrics.Precision.value: np.array(pre),
                         Metrics.NDCG.value: np.array(ndcg)}

@@ -19,7 +19,7 @@ from scipy.sparse import csr_matrix
 
 import scipy.sparse as sp
 
-import utils
+from util import utils
 import world
 
 

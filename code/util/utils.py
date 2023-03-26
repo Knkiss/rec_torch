@@ -25,75 +25,6 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 
-def loss_BPR(all_users, all_items, users, pos, neg):
-    users_emb = all_users[users.long()]
-    pos_emb = all_items[pos.long()]
-    neg_emb = all_items[neg.long()]
-    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
-    neg_scores = torch.mul(users_emb, neg_emb).sum(dim=1)
-    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores)))  # mean or sum
-    return loss
-
-
-def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
-    userEmb0 = all_users_origin(users.long())
-    posEmb0 = all_items_origin(pos.long())
-    negEmb0 = all_items_origin(neg.long())
-    loss = (1 / 2) * (userEmb0.norm(2).pow(2) + posEmb0.norm(2).pow(2) + negEmb0.norm(2).pow(2)) / float(len(users))
-    return loss * world.decay
-
-
-def loss_info_nce(node_v1, node_v2, batch):
-    z1 = node_v1[batch]
-    z2 = node_v2[batch]
-    z_all = node_v2
-
-    def f(x):
-        return torch.exp(x / world.ssl_temp)
-
-    all_sim = f(sim(z1, z_all))
-    positive_pairs = f(sim(z1, z2))
-    negative_pairs = torch.sum(all_sim, 1)
-    loss = torch.sum(-torch.log(positive_pairs / negative_pairs))
-    return loss * world.ssl_reg
-
-
-def loss_SGL(node_v1, node_v2, batch):
-    emb1 = node_v1[batch]
-    emb2 = node_v2[batch]
-
-    normalize_emb1 = F.normalize(emb1, 1)
-    normalize_emb2 = F.normalize(emb2, 1)
-    normalize_all_emb2 = F.normalize(node_v2, dim=1)
-
-    pos_score = torch.sum(torch.mul(normalize_emb1, normalize_emb2), dim=1)
-    ttl_score = torch.matmul(normalize_emb1, normalize_all_emb2.T)
-
-    pos_score = torch.exp(pos_score / world.ssl_temp)
-    ttl_score = torch.sum(torch.exp(ttl_score / world.ssl_temp), dim=1)
-
-    loss = -torch.sum(torch.log(pos_score / ttl_score))
-    return loss * world.ssl_reg
-
-
-def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
-    r_embed = relation(r)
-    h_embed = head(h)
-    pos_t_embed = tail(pos_t)
-    neg_t_embed = tail(neg_t)
-
-    pos_score = torch.sum(torch.pow(h_embed + r_embed - pos_t_embed, 2), dim=1)
-    neg_score = torch.sum(torch.pow(h_embed + r_embed - neg_t_embed, 2), dim=1)
-
-    kg_loss = (-1.0) * F.logsigmoid(neg_score - pos_score)
-    kg_loss = torch.mean(kg_loss)
-
-    l2_loss = _L2_loss_mean(h_embed) + _L2_loss_mean(r_embed) + _L2_loss_mean(pos_t_embed) + _L2_loss_mean(
-        neg_t_embed)
-    loss = kg_loss + 1e-3 * l2_loss
-    return loss
-
-
 def sim(z1: torch.Tensor, z2: torch.Tensor):
     if z1.size()[0] == z2.size()[0]:
         return F.cosine_similarity(z1, z2)
@@ -145,10 +76,6 @@ def randint_choice(high, size=None, replace=True, p=None, exclusion=None):
     return sample
 
 
-def _L2_loss_mean(x):
-    return torch.mean(torch.sum(torch.pow(x, 2), dim=1, keepdim=False) / 2.)
-
-
 def convert_sp_mat_to_sp_tensor(x):
     coo = x.tocoo().astype(np.float32)
     row = torch.Tensor(coo.row).long()
@@ -167,42 +94,6 @@ def getLabel(test_data, pred_data):
         pred = np.array(pred).astype("float")
         r.append(pred)
     return np.array(r).astype('float')
-
-
-def RecallPrecision_ATk(test_data, r, k):
-    """
-    test_data should be a list? cause users may have different amount of pos items. shape (test_batch, k)
-    pred_data : shape (test_batch, k) NOTE: pred_data should be pre-sorted
-    k : top-k
-    """
-    right_pred = r[:, :k].sum(1)
-    precis_n = k
-    recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
-    recall = np.sum(right_pred / recall_n)
-    precis = np.sum(right_pred) / precis_n
-    return {Metrics.Recall.value: recall, Metrics.Precision.value: precis}
-
-
-def NDCGatK_r(test_data, r, k):
-    """
-    Normalized Discounted Cumulative Gain
-    rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
-    """
-    assert len(r) == len(test_data)
-    pred_data = r[:, :k]
-
-    test_matrix = np.zeros((len(pred_data), k))
-    for i, items in enumerate(test_data):
-        length = k if k <= len(items) else len(items)
-        test_matrix[i, :length] = 1
-    max_r = test_matrix
-    idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
-    dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
-    dcg = np.sum(dcg, axis=1)
-    idcg[idcg == 0.] = 1.
-    ndcg = dcg / idcg
-    ndcg[np.isnan(ndcg)] = 0.
-    return np.sum(ndcg)
 
 
 def minibatch(*tensors, **kwargs):
