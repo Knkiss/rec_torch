@@ -2,33 +2,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from util import utils
-import world
-
-
-class LightGCN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.n_layers = world.lightGCN_layers
-        self.keep_prob = world.lightGCN_keep_prob
-        self.dropout = world.lightGCN_dropout
-
-    def forward(self, all_users, all_items, graph):
-        num_users = all_users.shape[0]
-        num_items = all_items.shape[0]
-        all_emb = torch.cat([all_users, all_items])
-        embs = [all_emb]
-        if self.dropout and self.training:
-            g_droped = utils.dropout_x(graph, self.keep_prob)
-        else:
-            g_droped = graph
-        for layer in range(self.n_layers):
-            all_emb = torch.sparse.mm(g_droped, all_emb)
-            embs.append(all_emb)
-        embs = torch.stack(embs, dim=1)
-        all_emb = torch.mean(embs, dim=1)
-        return torch.split(all_emb, [num_users, num_items])
-
 
 class GAT(nn.Module):
     def __init__(self, nfeat, nhid, dropout, alpha):
@@ -163,26 +136,3 @@ class GraphAttentionLayer(nn.Module):
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
-
-
-class QGrouping(nn.Module):
-    def __init__(self):
-        super(QGrouping, self).__init__()
-        self.q_dim = 4          # 分组数量，结果embedding多少个组
-        self.k_dim = 64         # 中间计算维度
-        self.v_dim = 64         # 值维度，结果embedding多少个维度
-        self.latent_dim = 64    # 输入维度
-        self.Q = nn.Parameter(torch.Tensor(self.k_dim, self.q_dim))         # [k,q]
-        self.W_K = nn.Parameter(torch.Tensor(self.latent_dim, self.k_dim))  # [d,k]
-        self.W_V = nn.Parameter(torch.Tensor(self.latent_dim, self.v_dim))  # [d,v]
-        nn.init.xavier_uniform_(self.Q, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.W_K, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.W_V, gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, emb):
-        K = torch.matmul(emb, self.W_K).unsqueeze(1)      # [N,1,k]
-        V = torch.matmul(emb, self.W_V).unsqueeze(2)      # [N,v,1]
-        att = torch.matmul(K, self.Q)                     # [N,1,q]
-        att = torch.softmax(att, dim=2)
-        final = torch.matmul(V, att)                      # [N,v,q]
-        return final

@@ -2,7 +2,7 @@ from enum import Enum
 
 import torch
 
-from util import utils
+from train import utils
 import world
 import torch.nn.functional as F
 
@@ -24,19 +24,35 @@ def loss_BPR(all_users, all_items, users, pos, neg):
     return loss
 
 
-def loss_SSM(all_users, all_items, users, pos):
-    SSM_sampled_number = pos.shape[0]
+def loss_SSM_origin(all_users, all_items, users, pos):
+    if world.SSM_Loss_cos:
+        batch_user_emb = F.normalize(all_users[users.long()], p=2, dim=1)
+        batch_item_emb = F.normalize(all_items[pos.long()], p=1, dim=1)
+    else:
+        batch_user_emb = all_users[users.long()]
+        batch_item_emb = all_items[pos.long()]
 
-    user_emb = all_users[users.long()]  # 【N,d】
-    pos_emb = all_items[pos.long()]  # 【N,d】
-    positive_pairs = torch.exp(F.cosine_similarity(user_emb, pos_emb, dim=1))  # 【N】
+    pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
+    logits = ttl_score - pos_score
+    clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
+    loss = torch.sum(clogits)
+    return loss
 
-    user_emb = user_emb.unsqueeze(1).repeat(1, SSM_sampled_number, 1)  # 【N，sample, d】
-    neg_emb = all_items[pos.long()][:SSM_sampled_number, :].unsqueeze(0).repeat(users.shape[0], 1, 1)  # 【N, sample, d】
-    all_sim = torch.exp(F.cosine_similarity(user_emb, neg_emb, dim=2))  # 【N, sample】
-    negative_pairs = torch.sum(all_sim, 1)  # 【N】
 
-    loss = torch.sum(-torch.log(positive_pairs / negative_pairs))
+def loss_SSM_lms(all_users, all_items, users, pos):
+    ssl_temp = 0.1
+
+    if world.SSM_Loss_cos:
+        user_emb = F.normalize(all_users[users.long()], p=2, dim=1)
+        pos_emb = F.normalize(all_items[pos.long()], p=1, dim=1)
+    else:
+        user_emb = all_users[users.long()]
+        pos_emb = all_items[pos.long()]
+
+    pos_score = torch.exp(torch.div(torch.sum(torch.multiply(user_emb, pos_emb), dim=1), ssl_temp))
+    ttl_score = torch.sum(torch.exp(torch.div(torch.matmul(user_emb, pos_emb.T), ssl_temp)), dim=1)
+    loss = -torch.sum(torch.log(pos_score / ttl_score))
     return loss
 
 
@@ -96,7 +112,7 @@ def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
     kg_loss = torch.mean(kg_loss)
 
     def L2_loss_mean(x):
-        return torch.mean(torch.sum(torch.pow(x, 2), dim=1, keepdim=False) / 2.)
+        return torch.mean(torch.div(torch.sum(torch.pow(x, 2), dim=1, keepdim=False), 2.))
 
     l2_loss = L2_loss_mean(h_embed) + L2_loss_mean(r_embed) + L2_loss_mean(pos_t_embed) + L2_loss_mean(neg_t_embed)
     loss = kg_loss + 1e-3 * l2_loss

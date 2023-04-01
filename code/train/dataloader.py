@@ -19,7 +19,7 @@ from scipy.sparse import csr_matrix
 
 import scipy.sparse as sp
 
-from util import utils
+from train import utils
 import world
 
 
@@ -233,9 +233,13 @@ class KGDataset(Dataset):
 
     def generate_kg_data(self):
         kg_dict = collections.defaultdict(list)
+
+        # TODO 性能未知 部分relation对性能有一定提升
+        relation_list = 'All'
         for row in self.kg_data.iterrows():
             h, r, t = row[1]
-            kg_dict[h].append((r, t))
+            if relation_list == 'All' or r in relation_list:
+                kg_dict[h].append((r, t))
         heads = list(kg_dict.keys())
         return kg_dict, heads
 

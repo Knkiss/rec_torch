@@ -1,4 +1,2 @@
 *.npz
-/code/tensorboard/
-/code/tensorboard_cache/
-/code/pretrain/
+/code/output

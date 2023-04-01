@@ -18,10 +18,10 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from util import utils
-from train import model, metrics
-import world
+import model
 from train.losses import Loss
+from train import metrics, utils
+import world
 from train.metrics import Metrics
 
 
@@ -55,17 +55,12 @@ class Manager:
 
     def __prepare_model(self):
         self.procedure = [Procedure.Train_Rec, Procedure.Test]
-        if world.model == 'KGCL':
-            self.rec_model = model.KGCL()
-            if not world.KGCL_remove_Trans:
-                self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
-        elif world.model == 'QKV':
-            self.rec_model = model.QKV()
-        elif world.model == 'SGL' or world.model == 'GraphCL':
-            self.rec_model = model.SGL()
-        else:
-            self.rec_model = model.Baseline()
+        self.rec_model = model.get_model_by_name(world.model)
         self.rec_model = self.rec_model.to(world.device)
+
+        # TODO 性能提升 去掉Trans的计算
+        if world.model == 'KGCL':
+            self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
 
     def __prepare_optimizer(self):
         self.optimizer = optim.Adam(self.rec_model.parameters(), lr=world.learning_rate)
@@ -78,8 +73,10 @@ class Manager:
 
     def print_rec_module_info(self):
         print("--------------------- Modules  ---------------------")
-        for i in self.rec_model.modules():
-            print(i)
+        print(self.rec_model)
+        print("----------------------------------------------------")
+        for i, j in self.rec_model.state_dict().items():
+            print(i, ' :', j.shape)
         print("----------------------------------------------------")
 
     def __loop_procedure(self):
@@ -151,7 +148,7 @@ class Manager:
                                         self.epoch)
 
     def __procedure_test(self):
-        stop_metric = Metrics.Recall.value
+        stop_metric = world.early_stop_metric
         if self.epoch == 0 or (self.epoch < world.test_start_epoch and self.epoch % 5 == 0):
             self.best_result = self.__Test()
             print('\033[0;31m' + str(self.best_result) + '\033[0m')
@@ -168,7 +165,7 @@ class Manager:
                 self.best_result = result
                 print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
                 if world.pretrain_output_enable:
-                    output = world.pretrain_folder + world.dataset + '_' + world.model + '.pretrain'
+                    output = world.PRETRAIN_PATH + '/' + world.dataset + '_' + world.model + '.pretrain'
                     torch.save(self.rec_model.state_dict(), output)
             elif world.early_stop_enable:
                 print('\033[0;32m' + str(result) + '\033[0m')
@@ -185,9 +182,9 @@ class Manager:
         dataset = self.rec_model.ui_dataset
         testDict: dict = dataset.testDict
         max_K = max(world.topKs)
-        results = {Metrics.Precision.value: np.zeros(len(world.topKs)),
-                   Metrics.NDCG.value: np.zeros(len(world.topKs)),
-                   Metrics.Recall.value: np.zeros(len(world.topKs))}
+        results = {}
+        for i in world.metrics:
+            results[i] = np.zeros(len(world.topKs))
         with torch.no_grad():
             users = list(testDict.keys())
             try:
@@ -222,36 +219,34 @@ class Manager:
                 sorted_items = batch[0].numpy()
                 label = batch[1]
                 r = utils.getLabel(label, sorted_items)
-                pre, recall, ndcg = [], [], []
+                result_list = {}
+                for l in world.metrics:
+                    result_list[l] = []
                 for k in world.topKs:
-                    ret = metrics.RecallPrecision_topk(label, r, k)
-                    pre.append(ret[Metrics.Precision.value])
-                    recall.append(ret[Metrics.Recall.value])
-                    ndcg.append(metrics.NDCG_topK(label, r, k))
-                return {Metrics.Recall.value: np.array(recall),
-                        Metrics.Precision.value: np.array(pre),
-                        Metrics.NDCG.value: np.array(ndcg)}
+                    for j in world.metrics:
+                        if j == Metrics.Precision.value:
+                            result_list[j].append(metrics.Precision_topK(r, k))
+                        elif j == Metrics.Recall.value:
+                            result_list[j].append(metrics.Recall_topK(label, r, k))
+                        elif j == Metrics.NDCG.value:
+                            result_list[j].append(metrics.NDCG_topK(label, r, k))
+                        elif j == Metrics.MRR.value:
+                            result_list[j].append(metrics.MRR_topK(r, k))
+                return result_list
 
             pre_results = []
             for x in X:
                 pre_results.append(test_one_batch(x))
             for result in pre_results:
-                results[Metrics.Recall.value] += result[Metrics.Recall.value]
-                results[Metrics.Precision.value] += result[Metrics.Precision.value]
-                results[Metrics.NDCG.value] += result[Metrics.NDCG.value]
-            results[Metrics.Recall.value] /= float(len(users))
-            results[Metrics.Precision.value] /= float(len(users))
-            results[Metrics.NDCG.value] /= float(len(users))
+                for i in world.metrics:
+                    results[i] += result[i]
+            for i in world.metrics:
+                results[i] /= float(len(users))
             if self.tensorboard is not None:
-                self.tensorboard.add_scalars(f'Test/Recall@{world.topKs}',
-                                             {str(world.topKs[i]): results[Metrics.Recall.value][i] for i in
-                                              range(len(world.topKs))}, self.epoch)
-                self.tensorboard.add_scalars(f'Test/Precision@{world.topKs}',
-                                             {str(world.topKs[i]): results[Metrics.Precision.value][i] for i in
-                                              range(len(world.topKs))}, self.epoch)
-                self.tensorboard.add_scalars(f'Test/NDCG@{world.topKs}',
-                                             {str(world.topKs[i]): results[Metrics.NDCG.value][i] for i in
-                                              range(len(world.topKs))}, self.epoch)
+                for metric in world.metrics:
+                    self.tensorboard.add_scalars(f'Test/' + metric + '@{world.topKs}',
+                                                 {str(world.topKs[i]): results[metric][i] for i in
+                                                  range(len(world.topKs))}, self.epoch)
             return results
 
     def __close(self):

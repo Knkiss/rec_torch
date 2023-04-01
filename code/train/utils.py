@@ -10,11 +10,11 @@ from email.mime.text import MIMEText
 from random import random
 
 import numpy as np
+import scipy.sparse as sp
 import torch
 import torch.nn.functional as F
 
 import world
-from main import Metrics
 
 
 def set_seed(seed):
@@ -128,3 +128,31 @@ def mail_on_stop(results):
         print('发送提醒邮件至' + world.mail_receivers[0])
     except smtplib.SMTPException as e:
         print('发送邮件错误：', e)
+
+
+def create_adj_mat(training_user, training_item, num_users, num_items, is_subgraph=True):
+    n_nodes = num_users + num_items
+    if is_subgraph:
+        keep_idx = randint_choice(len(training_user), size=int(len(training_user) * (1-world.SGL_RATIO)), replace=False)
+        user_np = np.array(training_user)[keep_idx]
+        item_np = np.array(training_item)[keep_idx]
+        ratings = np.ones_like(user_np, dtype=np.float32)
+        tmp_adj = sp.csr_matrix((ratings, (user_np, item_np + num_users)), shape=(n_nodes, n_nodes))
+
+    else:
+        user_np = np.array(training_user)
+        item_np = np.array(training_item)
+        ratings = np.ones_like(user_np, dtype=np.float32)
+        tmp_adj = sp.csr_matrix((ratings, (user_np, item_np + num_users)), shape=(n_nodes, n_nodes))
+    adj_mat = tmp_adj + tmp_adj.T
+
+    rowsum = np.array(adj_mat.sum(1))
+    d_inv = np.power(rowsum, -0.5).flatten()
+    d_inv[np.isinf(d_inv)] = 0.
+    d_mat_inv = sp.diags(d_inv)
+    norm_adj_tmp = d_mat_inv.dot(adj_mat)
+    adj_matrix = norm_adj_tmp.dot(d_mat_inv)
+
+    Graph = convert_sp_mat_to_sp_tensor(adj_matrix)
+    Graph = Graph.coalesce().to(world.device)
+    return Graph

@@ -7,30 +7,23 @@ class Metrics(Enum):
     Recall = "Recall"
     Precision = "Precision"
     NDCG = "NDCG"
+    MRR = "MRR"
 
 
-def RecallPrecision_topk(test_data, result, k):
-    """
-    test_data : 原测试数据
-    result : 测试结果
-    k : top-k
-    """
+def Recall_topK(test_data, result, k):
     right_pred = result[:, :k].sum(1)
-    precis_n = k
     recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
-    recall = np.sum(right_pred / recall_n)
-    precis = np.sum(right_pred) / precis_n
-    return {Metrics.Recall.value: recall, Metrics.Precision.value: precis}
+    return np.sum(right_pred / recall_n)
+
+
+def Precision_topK(result, k):
+    right_pred = result[:, :k].sum(1)
+    return np.sum(right_pred) / k
 
 
 def NDCG_topK(test_data, result, k):
-    """
-    Normalized Discounted Cumulative Gain
-    rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
-    """
     assert len(result) == len(test_data)
     pred_data = result[:, :k]
-
     test_matrix = np.zeros((len(pred_data), k))
     for i, items in enumerate(test_data):
         length = k if k <= len(items) else len(items)
@@ -43,3 +36,20 @@ def NDCG_topK(test_data, result, k):
     ndcg = dcg / idcg
     ndcg[np.isnan(ndcg)] = 0.
     return np.sum(ndcg)
+
+
+def MRR_topK(result, k):
+    pred_data = result[:, :k]
+    scores = np.log2(1./np.arange(1, k+1))
+    pred_data = pred_data/scores
+    pred_data = pred_data.sum(1)
+    return np.sum(pred_data)
+
+
+# def AUC(all_item_scores, dataset, test_data):
+#     dataset : UIDataset
+#     r_all = np.zeros((dataset.m_items, ))
+#     r_all[test_data] = 1
+#     r = r_all[all_item_scores >= 0]
+#     test_item_scores = all_item_scores[all_item_scores >= 0]
+#     return roc_auc_score(r, test_item_scores)
