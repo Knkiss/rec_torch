@@ -146,14 +146,10 @@ class KGCL_my(model.AbstractRecModel):
         loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
         users_v1, items_v1 = self.calculate_embedding_graph(self.contrast_views["uiv1"], self.contrast_views["kgv1"])
         users_v2, items_v2 = self.calculate_embedding_graph(self.contrast_views["uiv2"], self.contrast_views["kgv2"])
+
         loss_ssl_item = losses.loss_info_nce(items_v1, items_v2, pos)
         loss_ssl_user = losses.loss_info_nce(users_v1, users_v2, users)
         loss[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
-        return loss
-
-    def calculate_loss_transE(self, h, r, pos_t, neg_t):
-        loss = losses.loss_transE(self.embedding_item,
-                                  self.embedding_entity,
-                                  self.embedding_relation,
-                                  h, r, pos_t, neg_t)
+        # TODO 性能未知 在对比学习中对比边、不对比节点
+        # loss[Loss.SSL.value] = losses.loss_info_nce_edge(users_v1, items_v1, users_v2, items_v2, users, pos, neg)
         return loss

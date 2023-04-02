@@ -122,13 +122,16 @@ elif dataset == 'yelp2018':
 elif dataset == 'movielens1m':
     test_start_epoch = 5
     early_stop_epoch_cnt = 10
+elif dataset == 'movielens1m_kg':
+    test_start_epoch = 5
+    early_stop_epoch_cnt = 30
 elif dataset == 'citeulikea':
     test_start_epoch = 5
     early_stop_epoch_cnt = 30
-elif dataset == 'lastfm':
+elif dataset == 'lastfm_kg':
     test_start_epoch = 5
     early_stop_epoch_cnt = 30
-elif dataset == 'lastfm_big':
+elif dataset == 'lastfm':
     test_start_epoch = 5
     early_stop_epoch_cnt = 10
 # endregion

@@ -136,7 +136,7 @@ class KGCL(model.AbstractRecModel):
         return loss
 
     def calculate_loss_transE(self, h, r, pos_t, neg_t):
-        loss = losses.loss_transE(self.embedding_item,
+        loss = losses.loss_transE(self.embedding_entity,
                                   self.embedding_entity,
                                   self.embedding_relation,
                                   h, r, pos_t, neg_t)

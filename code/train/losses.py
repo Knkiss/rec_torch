@@ -117,3 +117,28 @@ def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
     l2_loss = L2_loss_mean(h_embed) + L2_loss_mean(r_embed) + L2_loss_mean(pos_t_embed) + L2_loss_mean(neg_t_embed)
     loss = kg_loss + 1e-3 * l2_loss
     return loss
+
+
+def loss_info_nce_edge(users_v1, items_v1, users_v2, items_v2, users, pos, neg):
+    emb1 = users_v1[users] * items_v1[pos]
+    emb2 = users_v2[users] * items_v2[pos]
+
+    emb3 = users_v2[users] * items_v2[neg]
+    emb4 = users_v1[users] * items_v1[neg]
+
+    node_v2 = torch.cat((emb2, emb3, emb4), dim=0)
+    # node_v2 = users_v2.unsqueeze(1).repeat(1, items_v2.shape[0], 1) * items_v2.unsqueeze(0).repeat(users_v2.shape[0], 1, 1)
+    # node_v2 = node_v2.reshape([-1, 64])
+
+    normalize_emb1 = F.normalize(emb1, 1)
+    normalize_emb2 = F.normalize(emb2, 1)
+    normalize_all_emb2 = F.normalize(node_v2, dim=1)
+
+    pos_score = torch.sum(torch.mul(normalize_emb1, normalize_emb2), dim=1)
+    ttl_score = torch.matmul(normalize_emb1, normalize_all_emb2.T)
+
+    pos_score = torch.exp(pos_score / world.ssl_temp)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.ssl_temp), dim=1)
+
+    loss = -torch.sum(torch.log(pos_score / ttl_score))
+    return loss * world.ssl_reg
