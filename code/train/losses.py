@@ -26,8 +26,8 @@ def loss_BPR(all_users, all_items, users, pos, neg):
 
 def loss_SSM_origin(all_users, all_items, users, pos):
     if world.SSM_Loss_cos:
-        batch_user_emb = F.normalize(all_users[users.long()], p=2, dim=1)
-        batch_item_emb = F.normalize(all_items[pos.long()], p=1, dim=1)
+        batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+        batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
     else:
         batch_user_emb = all_users[users.long()]
         batch_item_emb = all_items[pos.long()]
@@ -41,17 +41,15 @@ def loss_SSM_origin(all_users, all_items, users, pos):
 
 
 def loss_SSM_lms(all_users, all_items, users, pos):
-    ssl_temp = 0.1
-
     if world.SSM_Loss_cos:
-        user_emb = F.normalize(all_users[users.long()], p=2, dim=1)
-        pos_emb = F.normalize(all_items[pos.long()], p=1, dim=1)
+        user_emb = F.normalize(all_users[users.long()], dim=1)
+        pos_emb = F.normalize(all_items[pos.long()], dim=1)
     else:
         user_emb = all_users[users.long()]
         pos_emb = all_items[pos.long()]
 
-    pos_score = torch.exp(torch.div(torch.sum(torch.multiply(user_emb, pos_emb), dim=1), ssl_temp))
-    ttl_score = torch.sum(torch.exp(torch.div(torch.matmul(user_emb, pos_emb.T), ssl_temp)), dim=1)
+    pos_score = torch.exp(torch.div(torch.sum(torch.multiply(user_emb, pos_emb), dim=1), world.SSM_Loss_temp))
+    ttl_score = torch.sum(torch.exp(torch.div(torch.matmul(user_emb, pos_emb.T), world.SSM_Loss_temp)), dim=1)
     loss = -torch.sum(torch.log(pos_score / ttl_score))
     return loss
 

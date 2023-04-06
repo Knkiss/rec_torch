@@ -5,6 +5,7 @@
 @Author  ：Knkiss
 @Date    ：2023/2/16 16:44 
 """
+import itertools
 import sys
 import time
 from enum import Enum
@@ -40,10 +41,11 @@ class Manager:
 
         self.epoch = 0  # 迭代计数器
         self.stopping_step = 0  # 累加停止计数器，等于-1时训练停止
-        self.best_result = 0.  # 性能统计
+        self.best_result = {}  # 性能统计
 
         self.procedure = []
 
+        time_start = time.time()
         utils.set_seed(world.seed)
         self.__prepare_model()
         self.__prepare_optimizer()
@@ -52,13 +54,15 @@ class Manager:
         self.__loop_procedure()
         self.__close()
         utils.mail_on_stop(self.best_result)
+        time_end = time.time()
+        print("Time Spend: ", time_end - time_start, "s")
 
     def __prepare_model(self):
         self.procedure = [Procedure.Train_Rec, Procedure.Test]
         self.rec_model = model.get_model_by_name(world.model)
         self.rec_model = self.rec_model.to(world.device)
 
-        # TODO 性能提升 去掉Trans的计算
+        # DIFF 性能提升 去掉Trans的计算
         if world.model == 'KGCL':
             self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
 
@@ -254,5 +258,59 @@ class Manager:
             self.tensorboard.close()
 
 
+class Search:
+    def __init__(self):
+        self.result = []
+        self.best_result = None
+        self.parameter_table = []
+        self.set_parameters_table()
+        print(self.parameter_table)
+        if input("参数设置列表如上，是否继续进行[y/n]:").lower() != 'y':
+            exit(1)
+        print("--------------------- Searches ---------------------")
+        self.search_parameter()
+        self.print_result(self.result)
+
+    def search_parameter(self):
+        for parameter in itertools.product(*self.parameter_table):
+            parameter_dict = self.set_parameters(parameter)
+            result = Manager().best_result
+            self.result.append(dict(result, **parameter_dict))
+            world.epoch = 0
+            world.root_model = False
+
+    def print_result(self, result):
+        if result is self.result:
+            print("--------------------- Searches ---------------------")
+        if isinstance(result, list):
+            for i in result:
+                self.print_result(i)
+        elif isinstance(result, dict):
+            if self.best_result is None \
+                    or self.best_result[world.early_stop_metric][-1] < result[world.early_stop_metric][-1]:
+                self.best_result = result
+            print(result)
+        if result is self.result:
+            print("--------------------- Searches End ------------------")
+            print("Best result: " + str(self.best_result))
+
+    # Need Change
+    @staticmethod
+    def set_parameters(parameters):
+        para_dict = {}
+        world.SSM_Loss_temp = parameters[0]
+        para_dict['SSM_Loss_temp'] = parameters[0]
+        world.SSM_Regulation = parameters[1]
+        para_dict['SSM_Regulation'] = parameters[1]
+        return para_dict
+
+    # Need Change
+    def set_parameters_table(self):
+        self.parameter_table = [[0.1, 0.2], [0.1, 0.2]]
+        # for i in range(1, 6):
+        #     self.parameter_table[0].append(i/10)
+
+
 if __name__ == '__main__':
     Manager()
+    # Search()  # 更改函数

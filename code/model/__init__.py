@@ -7,6 +7,7 @@ from model.graphcl import GraphCL
 from model.kgcl import KGCL
 from model.gat import GAT
 from model.kgcl_my import KGCL_my
+from model.ssm import SSM
 
 
 def get_model_by_name(name):

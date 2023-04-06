@@ -234,7 +234,7 @@ class KGDataset(Dataset):
     def generate_kg_data(self):
         kg_dict = collections.defaultdict(list)
 
-        # TODO 性能未知 部分relation对性能有一定提升
+        # DIFF 性能未知 部分relation对性能有一定提升
         relation_list = 'All'
         for row in self.kg_data.iterrows():
             h, r, t = row[1]

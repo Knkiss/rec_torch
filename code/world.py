@@ -36,9 +36,9 @@ ui_p_drop = 0.1  # ui去边概率
 # endregion
 
 # region SSM Loss
-SSM_Loss_enable = False
-SSM_Loss_cos = True     # True=cos False=内积
-SSM_Loss_temp = 0.1     # 温度系数 越小对正负例区分越大
+SSM_Loss_cos = True     # True=cos False=内积 default=True
+SSM_Loss_temp = 0.2     # 温度系数 越小对正负例区分越大
+SSM_Regulation = 0.1    # BPR 和 SSM的比例系数，加在SSM前
 # endregion
 # endregion
 
@@ -47,9 +47,9 @@ SSM_Loss_temp = 0.1     # 温度系数 越小对正负例区分越大
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGCL',
-                        help="[MF, LightGCN, SGL, QKV, GraphCL, KGCL, KGCL_my]")
-    parser.add_argument('--dataset', type=str, default='lastfm_big',
+    parser.add_argument('--model', type=str, default='KGCL_my',
+                        help="[MF, LightGCN, SGL, QKV, GraphCL, KGCL, KGCL_my, SSM]")
+    parser.add_argument('--dataset', type=str, default='amazonbook',
                         help="[MIND, amazonbook, movielens1m, yelp2018, citeulikea, lastfm]")
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")

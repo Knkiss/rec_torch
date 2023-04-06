@@ -92,11 +92,11 @@ class KGCL_my(model.AbstractRecModel):
         all_items_1 = self.cal_item_embedding_from_kg(view1)  # items * dims
         all_items_2 = self.cal_item_embedding_from_kg(view2)  # items * dims
 
-        # TODO 性能提升 Cui计算的 u_emb i_emb 经过LightGCN
+        # DIFF 性能提升 Cui计算的 u_emb i_emb 经过LightGCN
         all_users_1, all_items_1 = self.lightGCN(self.embedding_user.weight, all_items_1, self.Graph)
         all_users_2, all_items_2 = self.lightGCN(self.embedding_user.weight, all_items_2, self.Graph)
 
-        # TODO 性能提升 计算Cui
+        # DIFF 性能提升 计算Cui
         # userList = torch.LongTensor(self.ui_dataset.trainUser).to(world.device)
         user1_emb = all_users_1[self.ui_dataset.trainUser]  # inters * dims
         user2_emb = all_users_2[self.ui_dataset.trainUser]  # inters * dims
@@ -136,7 +136,7 @@ class KGCL_my(model.AbstractRecModel):
         return self.lightGCN(self.embedding_user.weight, self.cal_item_embedding_from_kg(kg_graph), ui_graph)   # 使用KG信息
 
     def calculate_embedding(self):
-        # TODO 性能提升 在BPR和test中不使用entity
+        # DIFF 性能提升 在BPR和test中不使用entity
         return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
@@ -150,6 +150,6 @@ class KGCL_my(model.AbstractRecModel):
         loss_ssl_item = losses.loss_info_nce(items_v1, items_v2, pos)
         loss_ssl_user = losses.loss_info_nce(users_v1, users_v2, users)
         loss[Loss.SSL.value] = loss_ssl_user + loss_ssl_item
-        # TODO 性能未知 在对比学习中对比边、不对比节点
+        # DIFF 性能未知 在对比学习中对比边、不对比节点
         # loss[Loss.SSL.value] = losses.loss_info_nce_edge(users_v1, items_v1, users_v2, items_v2, users, pos, neg)
         return loss

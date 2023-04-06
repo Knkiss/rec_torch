@@ -18,10 +18,7 @@ class LightGCN(model.AbstractRecModel):
     def calculate_loss(self, users, pos, neg):
         loss = {}
         all_users, all_items = self.calculate_embedding()
-        if world.SSM_Loss_enable:
-            loss[losses.Loss.BPR.value] = losses.loss_SSM_origin(all_users, all_items, users, pos)
-        else:
-            loss[losses.Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        loss[losses.Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos,
                                                              neg)
         return loss
