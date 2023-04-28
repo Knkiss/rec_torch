@@ -45,16 +45,16 @@ class Manager:
 
         self.procedure = []
 
-        time_start = time.time()
         utils.set_seed(world.seed)
         self.__prepare_model()
         self.__prepare_optimizer()
         self.__prepare_tensorboard()
         self.print_rec_module_info()
+        time_start = time.time()
         self.__loop_procedure()
+        time_end = time.time()
         self.__close()
         utils.mail_on_stop(self.best_result)
-        time_end = time.time()
         print("Time Spend: ", time_end - time_start, "s")
 
     def __prepare_model(self):
@@ -123,7 +123,7 @@ class Manager:
     def __procedure_train_Rec(self):
         self.rec_model.train()
         batch_size = world.train_batch_size
-        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=8)
         aver_loss = {Loss.BPR.value: 0.}
         for key in Loss:
             aver_loss[key.value] = 0.
@@ -298,19 +298,19 @@ class Search:
     @staticmethod
     def set_parameters(parameters):
         para_dict = {}
-        world.SSM_Loss_temp = parameters[0]
-        para_dict['SSM_Loss_temp'] = parameters[0]
-        world.SSM_Regulation = parameters[1]
-        para_dict['SSM_Regulation'] = parameters[1]
+        world.CCL_Margin = parameters[0]
+        para_dict['CCL_Margin'] = parameters[0]
         return para_dict
 
     # Need Change
     def set_parameters_table(self):
-        self.parameter_table = [[0.1, 0.2], [0.1, 0.2]]
+        self.parameter_table = [[0.1, 0.3, 0.5, 0.7, 0.9]]
         # for i in range(1, 6):
         #     self.parameter_table[0].append(i/10)
 
 
 if __name__ == '__main__':
-    Manager()
-    # Search()  # 更改函数
+    if world.searcher:
+        Search()
+    else:
+        Manager()

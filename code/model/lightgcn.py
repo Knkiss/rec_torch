@@ -1,7 +1,6 @@
 import torch
 
 import model
-import world
 from train import losses, utils
 
 N_LAYERS = 3
