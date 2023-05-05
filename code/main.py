@@ -6,6 +6,7 @@
 @Date    ：2023/2/16 16:44 
 """
 import itertools
+import os
 import sys
 import time
 from enum import Enum
@@ -123,7 +124,7 @@ class Manager:
     def __procedure_train_Rec(self):
         self.rec_model.train()
         batch_size = world.train_batch_size
-        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=8)
+        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
         aver_loss = {Loss.BPR.value: 0.}
         for key in Loss:
             aver_loss[key.value] = 0.
@@ -170,6 +171,8 @@ class Manager:
                 self.predict = predict
                 print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
                 if world.pretrain_output_enable:
+                    if not os.path.exists(world.PRETRAIN_PATH):
+                        os.makedirs(world.PRETRAIN_PATH)
                     output = world.PRETRAIN_PATH + '/' + world.dataset + '_' + world.model + '.pretrain'
                     torch.save(self.rec_model.state_dict(), output)
             elif world.early_stop_enable:
@@ -225,8 +228,8 @@ class Manager:
                 label = batch[1]
                 r = utils.getLabel(label, sorted_items)
                 result_list = {}
-                for l in world.metrics:
-                    result_list[l] = []
+                for m in world.metrics:
+                    result_list[m] = []
                 for k in world.topKs:
                     for j in world.metrics:
                         if j == Metrics.Precision.value:
@@ -258,7 +261,9 @@ class Manager:
         if self.tensorboard is not None:
             self.tensorboard.close()
         if world.predict_list_enable:
-            with open(world.OUTPUT_PATH + '/predict/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
+            if not os.path.exists(world.PREDICT_PATH):
+                os.makedirs(world.PREDICT_PATH)
+            with open(world.PREDICT_PATH + '/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
                 for i in self.predict:
                     for j in i.numpy():
                         for k in j:

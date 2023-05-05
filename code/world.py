@@ -78,9 +78,10 @@ if platform.system().lower() == 'linux':
     ROOT_PATH = "/home/byl/code/rec_torch/"
 CODE_PATH = join(ROOT_PATH, 'code')
 DATA_PATH = join(ROOT_PATH, 'data')
-OUTPUT_PATH = join(CODE_PATH, 'output')
+OUTPUT_PATH = join(ROOT_PATH, 'output')
 PRETRAIN_PATH = join(OUTPUT_PATH, 'pretrain')
 BOARD_PATH = join(OUTPUT_PATH, 'tensorboard_cache')
+PREDICT_PATH = join(OUTPUT_PATH, 'predict')
 
 tensorboard_instance = None
 
