@@ -10,6 +10,7 @@ from model.kgcl_my import KGCL_my
 from model.ssm import SSM
 from model.graphadd import GraphADD
 from model.pcl import PCL
+from model.simgcl import SimGCL
 
 
 def get_model_by_name(name):

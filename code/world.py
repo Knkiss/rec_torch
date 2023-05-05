@@ -17,12 +17,12 @@ seed = 2020
 epoch = 0
 TRAIN_epochs = 1000
 embedding_dim = 64
-topKs = [10, 20]
+topKs = [2,4,6,8,10,12,14,16,18,20]
 decay = 1e-4
 root_model = False
 # endregion
 
-ssl_temp = 0.5  # 对比loss温度系数
+ssl_temp = 0.2  # 对比loss温度系数
 ssl_reg = 0.1  # 对比loss比例
 SGL_RATIO = 0.5  # 图生成比例
 
@@ -34,14 +34,13 @@ KGCL_ablated_model = 3  # optional=[0,1,2,3]
 SSM_Loss_temp = 0.2     # 温度系数 越小对正负例区分越大
 SSM_Regulation = 0.1    # BPR 和 SSM的比例系数，加在SSM前
 # endregion
-# endregion
 
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='PCL',
-                        help="[MF, LightGCN, SGL, QKV, GraphCL, KGCL, KGCL_my, SSM, PCL, GraphADD]")
-    parser.add_argument('--dataset', type=str, default='movielens1m',
+    parser.add_argument('--model', type=str, default='LightGCN',
+                        help="[MF, LightGCN, SGL, QKV, GraphCL, KGCL, KGCL_my, SSM, PCL, SimGCL]")
+    parser.add_argument('--dataset', type=str, default='lastfm',
                         help="[MIND, amazonbook, bookcrossing, movielens1m_kg, yelp2018_kg, citeulikea, lastfm]")
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")
@@ -50,9 +49,10 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
+    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
     return parser.parse_args()
 
 
@@ -67,6 +67,7 @@ tensorboard_enable = args.tensorboard
 searcher = args.searcher
 early_stop_enable = args.early_stop
 mail_on_stop_enable = args.mail_on_stop
+predict_list_enable = args.predict_list
 GPU = torch.cuda.is_available()
 device = torch.device('cuda' if GPU else "cpu")
 # endregion

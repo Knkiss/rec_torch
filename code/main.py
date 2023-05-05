@@ -154,10 +154,10 @@ class Manager:
     def __procedure_test(self):
         stop_metric = world.early_stop_metric
         if self.epoch == 0 or (self.epoch < world.test_start_epoch and self.epoch % 5 == 0):
-            self.best_result = self.__Test()
+            self.best_result, self.predict = self.__Test()
             print('\033[0;31m' + str(self.best_result) + '\033[0m')
         elif self.epoch >= world.test_start_epoch and self.epoch % world.test_verbose_epoch == 0:
-            result = self.__Test()
+            result, predict = self.__Test()
             if len(world.topKs) == 1:
                 now = result[stop_metric]
                 best = self.best_result[stop_metric]
@@ -167,6 +167,7 @@ class Manager:
             if now > best:
                 self.stopping_step = 0
                 self.best_result = result
+                self.predict = predict
                 print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
                 if world.pretrain_output_enable:
                     output = world.PRETRAIN_PATH + '/' + world.dataset + '_' + world.model + '.pretrain'
@@ -251,11 +252,17 @@ class Manager:
                     self.tensorboard.add_scalars(f'Test/' + metric + '@{world.topKs}',
                                                  {str(world.topKs[i]): results[metric][i] for i in
                                                   range(len(world.topKs))}, self.epoch)
-            return results
+            return results, rating_list
 
     def __close(self):
         if self.tensorboard is not None:
             self.tensorboard.close()
+        if world.predict_list_enable:
+            with open(world.OUTPUT_PATH + '/predict/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
+                for i in self.predict:
+                    for j in i.numpy():
+                        for k in j:
+                            f.write(str(k) + ', ')
 
 
 class Search:
