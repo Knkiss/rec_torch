@@ -43,6 +43,7 @@ class Manager:
         self.epoch = 0  # 迭代计数器
         self.stopping_step = 0  # 累加停止计数器，等于-1时训练停止
         self.best_result = {}  # 性能统计
+        self.timer = Timer()  # 时间统计
 
         self.procedure = []
 
@@ -51,12 +52,9 @@ class Manager:
         self.__prepare_optimizer()
         self.__prepare_tensorboard()
         self.print_rec_module_info()
-        time_start = time.time()
         self.__loop_procedure()
-        time_end = time.time()
         self.__close()
         utils.mail_on_stop(self.best_result)
-        print("Time Spend: ", time_end - time_start, "s")
 
     def __prepare_model(self):
         self.procedure = [Procedure.Train_Rec, Procedure.Test]
@@ -85,6 +83,7 @@ class Manager:
         print("----------------------------------------------------")
 
     def __loop_procedure(self):
+        self.timer.start('time_sum')
         for self.epoch in range(0, world.TRAIN_epochs):
             world.epoch = self.epoch
             if self.stopping_step == -1 or self.epoch == world.TRAIN_epochs - 1:
@@ -100,6 +99,7 @@ class Manager:
                 else:
                     raise Exception('不存在的进程类型')
             self.scheduler.step()
+        self.timer.end('time_sum')
 
     def __procedure_train_TransR(self):
         self.rec_model.train()
@@ -122,6 +122,7 @@ class Manager:
             self.tensorboard.add_scalar(f'Loss/Trans', trans_loss / len(KGLoader), self.epoch)
 
     def __procedure_train_Rec(self):
+        self.timer.start('time_train_per_epoch')
         self.rec_model.train()
         batch_size = world.train_batch_size
         UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
@@ -151,6 +152,7 @@ class Manager:
                                         self.epoch)
             self.tensorboard.add_scalar(f'Loss/SSL', aver_loss[Loss.SSL.value] / (batch_size * len(UILoader)),
                                         self.epoch)
+        self.timer.end('time_train_per_epoch')
 
     def __procedure_test(self):
         stop_metric = world.early_stop_metric
@@ -268,6 +270,9 @@ class Manager:
                     for j in i.numpy():
                         for k in j:
                             f.write(str(k) + ', ')
+        if world.time_calculate_enable:
+            self.timer.print_time('time_train_per_epoch', average=self.epoch)
+            self.timer.print_time('time_sum', average=1)
 
 
 class Search:
@@ -319,6 +324,30 @@ class Search:
         self.parameter_table = [[0.1, 0.3, 0.5, 0.7, 0.9]]
         # for i in range(1, 6):
         #     self.parameter_table[0].append(i/10)
+
+
+class Timer:
+    def __init__(self):
+        self.time_use = {}
+        self.start_time = {}
+
+    def start(self, key):
+        self.start_time[key] = time.time()
+
+    def end(self, key):
+        if key not in self.start_time.keys():
+            raise KeyError('未定义时间记录' + key + '开始')
+        time_use_one = time.time() - self.start_time.pop(key)
+        if key in self.time_use.keys():
+            self.time_use[key] += time_use_one
+        else:
+            self.time_use[key] = time_use_one
+
+    def get_time(self, key, average=1):
+        return self.time_use[key]/average
+
+    def print_time(self, key, average=1):
+        print(key, ":", self.get_time(key, average), "s")
 
 
 if __name__ == '__main__':

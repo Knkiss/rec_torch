@@ -17,7 +17,8 @@ seed = 2020
 epoch = 0
 TRAIN_epochs = 1000
 embedding_dim = 64
-topKs = [2,4,6,8,10,12,14,16,18,20]
+# topKs = [2,4,6,8,10,12,14,16,18,20]
+topKs = [10, 20]
 decay = 1e-4
 root_model = False
 # endregion
@@ -38,8 +39,12 @@ SSM_Regulation = 0.1    # BPR 和 SSM的比例系数，加在SSM前
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='LightGCN',
-                        help="[MF, LightGCN, SGL, QKV, GraphCL, KGCL, KGCL_my, SSM, PCL, SimGCL]")
+    parser.add_argument('--model', type=str, default='MF')
+    # classic: MF、LightGCN
+    # contrastive: SGL、SSM、SimGCL
+    # KG-based: KGCL
+    # mine: PCL、KGCL_my
+    # unuse: QKV、GraphCL
     parser.add_argument('--dataset', type=str, default='lastfm',
                         help="[MIND, amazonbook, bookcrossing, movielens1m_kg, yelp2018_kg, citeulikea, lastfm]")
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
@@ -52,7 +57,8 @@ def parse_args():
     parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
-    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
+    parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
+    parser.add_argument('--time_calculate', type=bool, default=True)  # 是否开启时间统计
     return parser.parse_args()
 
 
@@ -68,6 +74,7 @@ searcher = args.searcher
 early_stop_enable = args.early_stop
 mail_on_stop_enable = args.mail_on_stop
 predict_list_enable = args.predict_list
+time_calculate_enable = args.time_calculate
 GPU = torch.cuda.is_available()
 device = torch.device('cuda' if GPU else "cpu")
 # endregion
