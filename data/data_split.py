@@ -53,6 +53,47 @@ def kg_split(kg_file):
             f.write(str(i[0]) + " " + str(i[1]) + " " + str(i[2]) + "\n")
 
 
+def ui_to_iu(input_train, input_test, output_iu):
+    all_iu = {}
+    with open(input_train, mode='r') as f:
+        for i in f.readlines():
+            i = i.replace('\n', '').split(' ')
+            uid = int(i[0])
+            iid = i[1:]
+            if iid == ['']:
+                continue
+            for j in iid:
+                j = int(j)
+                if j in all_iu.keys():
+                    if uid not in all_iu[j]:
+                        all_iu[j].append(uid)
+                else:
+                    all_iu[j] = [uid]
+    with open(input_test, mode='r') as f:
+        for i in f.readlines():
+            i = i.replace('\n', '').split(' ')
+            uid = int(i[0])
+            iid = i[1:]
+            if iid == ['']:
+                continue
+            for j in iid:
+                j = int(j)
+                if j in all_iu.keys():
+                    if uid not in all_iu[j]:
+                        all_iu[j].append(uid)
+                else:
+                    all_iu[j] = [uid]
+    with open(output_iu, mode='w') as f:
+        for i in sorted(all_iu.keys()):
+            f.write(str(i) + ' ')
+            for uid in all_iu[i]:
+                if uid is all_iu[i][-1]:
+                    f.write(str(uid))
+                else:
+                    f.write(str(uid) + ' ')
+            f.write('\n')
+
+
 if __name__ == '__main__':
     train_test_split('ratings_final', test_ratio=0.2)
     kg_split('kg_final.txt')

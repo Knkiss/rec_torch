@@ -49,8 +49,9 @@ def parse_args():
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
     parser.add_argument('--dataset', type=str, default='amazonbook')
-    # classic: amazonbook、bookcrossing、citeulikea、lastfm、movielens1m、movielens1m_kg、yelp2018、yelp2018_kg
+    # classic: amazonbook、bookcrossing、citeulikea、lastfm、lastfm_kg、movielens1m、movielens1m_kg、yelp2018、yelp2018_kg
     # KG-based: amazonbook、bookcrossing、movielens1m_kg、yelp2018_kg、lastfm_kg
+    # 不可用：MIND
 
     # PCL文章使用：amazonbook、lastfm
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
