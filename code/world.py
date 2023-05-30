@@ -32,8 +32,11 @@ kg_p_drop = 0.5  # kg去边概率
 ui_p_drop = 0.1  # ui去边概率
 KGCL_ablated_model = 3  # optional=[0,1,2,3]
 
-SSM_Loss_temp = 0.2     # 温度系数 越小对正负例区分越大
-SSM_Regulation = 0.1    # BPR 和 SSM的比例系数，加在SSM前
+SSM_Loss_temp = 0.2  # 温度系数 越小对正负例区分越大
+SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
+SSM_Margin = 1
+
+
 # endregion
 
 # region 命令行参数读取
@@ -44,9 +47,12 @@ def parse_args():
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL
     # mine: PCL、KGCL_my
-    # unuse: QKV、GraphCL
-    parser.add_argument('--dataset', type=str, default='lastfm',
-                        help="[MIND, amazonbook, bookcrossing, movielens1m_kg, yelp2018_kg, citeulikea, lastfm]")
+    # unUse: QKV、GraphCL
+    parser.add_argument('--dataset', type=str, default='amazonbook')
+    # classic: amazonbook、bookcrossing、citeulikea、lastfm、movielens1m、movielens1m_kg、yelp2018、yelp2018_kg
+    # KG-based: amazonbook、bookcrossing、movielens1m_kg、yelp2018_kg、lastfm_kg
+
+    # PCL文章使用：amazonbook、lastfm
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")
     parser.add_argument('--train_batch', type=int, default=2048)
@@ -116,44 +122,13 @@ if linux_nohup:
 # endregion
 
 # region 数据集设置
-if dataset == 'MIND':
-    pass
-elif dataset == 'lastfm':
-    pass
-elif dataset == 'amazonbook':
-    pass
-elif dataset == 'yelp2018':
-    pass
-elif dataset == 'movielens1m':
-    pass
-elif dataset == 'movielens1m_kg':
-    early_stop_epoch_cnt = 30
-elif dataset == 'citeulikea':
-    early_stop_epoch_cnt = 30
-elif dataset == 'lastfm_kg':
-    early_stop_epoch_cnt = 30
-elif dataset == 'bookcrossing':
-    if model == 'KGCL_my':
-        learning_rate = 0.0001
-    early_stop_epoch_cnt = 30
+pass
 # endregion
 
 # region 模型设置
-if model == 'KGCL':
-    pretrain_input_enable = False
-    pretrain_input = 'KGCL'
-elif model == 'QKV':
-    pretrain_input_enable = True
-    pretrain_input = 'lightGCN'
-    test_start_epoch = 0
-    early_stop_enable = True
-    early_stop_epoch_cnt = 20
-elif model == 'GraphCL':
-    pretrain_input_enable = True
-    pretrain_input = 'SGL'
-    test_start_epoch = 0
-    early_stop_enable = True
-    early_stop_epoch_cnt = 20
+pass
+if model == 'MF':
+    early_stop_epoch_cnt = 30
 # endregion
 
 

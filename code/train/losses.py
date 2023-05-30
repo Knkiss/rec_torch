@@ -28,7 +28,7 @@ def loss_SSM_origin(all_users, all_items, users, pos):
     batch_user_emb = F.normalize(all_users[users.long()], dim=1)
     batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
     pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
-    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
     logits = ttl_score - pos_score
     clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
     loss = torch.sum(clogits)
