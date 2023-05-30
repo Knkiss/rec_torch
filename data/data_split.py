@@ -95,5 +95,11 @@ def ui_to_iu(input_train, input_test, output_iu):
 
 
 if __name__ == '__main__':
-    train_test_split('ratings_final', test_ratio=0.2)
-    kg_split('kg_final.txt')
+    dataset = 'lastfm_kg'
+    file_train = dataset + '/train.txt'
+    file_test = dataset + '/test.txt'
+    file_iu = dataset + '/iu.txt'
+
+    # train_test_split('ratings_final', test_ratio=0.2)
+    # kg_split('kg_final.txt')
+    ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
