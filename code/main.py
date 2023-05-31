@@ -71,7 +71,8 @@ class Manager:
 
     def __prepare_tensorboard(self):
         if world.tensorboard_enable:
-            self.tensorboard = SummaryWriter(join(world.BOARD_PATH, time.strftime("%m-%d_%Hh%Mm%Ss_" + world.model)))
+            self.tensorboard = SummaryWriter(join(world.BOARD_PATH, time.strftime("%m-%d_%Hh%Mm%Ss_" +
+                                                                                  world.model + '_' + world.dataset)))
             world.tensorboard_instance = self.tensorboard
 
     def print_rec_module_info(self):
@@ -254,7 +255,7 @@ class Manager:
                 results[i] /= float(len(users))
             if self.tensorboard is not None:
                 for metric in world.metrics:
-                    self.tensorboard.add_scalars(f'Test/' + metric + '@{world.topKs}',
+                    self.tensorboard.add_scalars(f'Test/' + metric + '@',
                                                  {str(world.topKs[i]): results[metric][i] for i in
                                                   range(len(world.topKs))}, self.epoch)
             return results, rating_list
