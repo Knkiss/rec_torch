@@ -60,11 +60,11 @@ def parse_args():
     parser.add_argument('--test_batch', type=int, default=4096)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
-    parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
+    parser.add_argument('--tensorboard', type=bool, default=True)  # 是否记录为可视化
     parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
-    parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
+    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
     parser.add_argument('--time_calculate', type=bool, default=True)  # 是否开启时间统计
     return parser.parse_args()
 
