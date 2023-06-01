@@ -35,6 +35,112 @@ def loss_SSM_origin(all_users, all_items, users, pos):
     return loss
 
 
+def loss_New_1_1(all_users, all_items, users, pos, neg):
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+
+    neg_scores = torch.matmul(users_emb, neg_emb.T)
+    neg_scores = torch.mean(neg_scores, dim=1)
+
+    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores)))
+    return loss
+
+
+def loss_New_1_2(all_users, all_items, users, pos, neg):
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+
+    neg_scores = torch.matmul(users_emb, neg_emb.T)
+    neg_scores = torch.exp(neg_scores)
+    neg_scores = torch.mean(neg_scores, dim=1)
+    neg_scores = torch.log(neg_scores)
+
+    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores)))
+    return loss
+
+
+def loss_New_1_3(all_users, all_items, users, pos, neg):
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+
+    neg_scores_1 = torch.mul(users_emb, neg_emb).sum(dim=1)
+
+    neg_scores = torch.matmul(users_emb, pos_emb.T)
+    neg_scores = torch.exp(neg_scores)
+    neg_scores = torch.mean(neg_scores, dim=1)
+    neg_scores = torch.log(neg_scores)
+
+    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores_1 - neg_scores)))
+    return loss
+
+
+def loss_New_2_1(all_users, all_items, users, pos, neg):
+    batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+
+    pos = torch.mul(users_emb, pos_emb).sum(dim=1)
+    neg = torch.mul(users_emb, neg_emb).sum(dim=1)
+    pos_score = torch.nn.functional.softplus(pos - neg).unsqueeze(dim=1)
+
+    # pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
+    logits = ttl_score - pos_score
+    clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
+    loss = torch.sum(clogits)
+    return loss
+
+
+def loss_New_2_2(all_users, all_items, users, pos, neg):
+    batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+    batch_neg_emb = F.normalize(all_items[neg.long()], dim=1)
+
+    pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1)
+    pos_score = torch.exp(pos_score / world.SSM_Loss_temp)
+
+    neg_score = torch.sum(torch.multiply(batch_user_emb, batch_neg_emb), dim=1)
+    neg_score = torch.exp(neg_score / world.SSM_Loss_temp)
+
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.SSM_Loss_temp), dim=1)
+
+    clogits = -(torch.log(pos_score) - torch.log(ttl_score + neg_score))
+    loss = torch.sum(clogits)
+    return loss
+
+
+def loss_New_2_3(all_users, all_items, users, pos, neg):
+    batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+    batch_neg_emb = F.normalize(all_items[neg.long()], dim=1)
+
+    pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1)
+    pos_score = torch.exp(pos_score / world.SSM_Loss_temp)
+
+    neg_score = torch.sum(torch.multiply(batch_user_emb, batch_neg_emb), dim=1)
+    neg_score = torch.exp(neg_score / world.SSM_Loss_temp)
+
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.SSM_Loss_temp), dim=1)
+
+    clogits = -(torch.log(pos_score) - torch.log(ttl_score * neg_score))
+    loss = torch.sum(clogits)
+    return loss
+
+
 def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
     userEmb0 = all_users_origin(users.long())
     posEmb0 = all_items_origin(pos.long())
