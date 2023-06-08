@@ -323,8 +323,6 @@ class Search:
     # Need Change
     def set_parameters_table(self):
         self.parameter_table = [[0.1, 0.3, 0.5, 0.7, 0.9]]
-        # for i in range(1, 6):
-        #     self.parameter_table[0].append(i/10)
 
 
 class Timer:
