@@ -86,17 +86,16 @@ def loss_New_1_3(all_users, all_items, users, pos, neg):
 def loss_New_2_1(all_users, all_items, users, pos, neg):
     batch_user_emb = F.normalize(all_users[users.long()], dim=1)
     batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+    batch_item_emb_neg = F.normalize(all_items[neg.long()], dim=1)
 
-    users_emb = all_users[users.long()]
-    pos_emb = all_items[pos.long()]
-    neg_emb = all_items[neg.long()]
-
-    pos = torch.mul(users_emb, pos_emb).sum(dim=1)
-    neg = torch.mul(users_emb, neg_emb).sum(dim=1)
+    pos = torch.mul(batch_user_emb, batch_item_emb).sum(dim=1)
+    neg = torch.mul(batch_user_emb, batch_item_emb_neg).sum(dim=1)
     pos_score = torch.nn.functional.softplus(pos - neg).unsqueeze(dim=1)
 
-    # pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
-    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
+    ttl_score_neg_all = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
+    ttl_score_neg = torch.matmul(batch_user_emb, batch_item_emb_neg.T) * world.SSM_Margin
+    ttl_score = ttl_score_neg_all + ttl_score_neg
+
     logits = ttl_score - pos_score
     clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
     loss = torch.sum(clogits)
@@ -117,7 +116,7 @@ def loss_New_2_2(all_users, all_items, users, pos, neg):
     ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
     ttl_score = torch.sum(torch.exp(ttl_score / world.SSM_Loss_temp), dim=1)
 
-    clogits = -(torch.log(pos_score) - torch.log(ttl_score + neg_score))
+    clogits = -(torch.log(pos_score) - torch.log(ttl_score*world.test_ratio + neg_score*world.test_ratio_2))
     loss = torch.sum(clogits)
     return loss
 

@@ -316,13 +316,20 @@ class Search:
     @staticmethod
     def set_parameters(parameters):
         para_dict = {}
-        world.CCL_Margin = parameters[0]
-        para_dict['CCL_Margin'] = parameters[0]
+        # world.test_ratio_2 = parameters[0]
+        # para_dict['test_ratio_2'] = parameters[0]
+        # world.test_ratio = parameters[1]
+        # para_dict['test_ratio'] = parameters[1]
+        world.SSM_Loss_temp = parameters[0]
+        para_dict['SSM_Loss_temp'] = parameters[0]
         return para_dict
 
     # Need Change
     def set_parameters_table(self):
-        self.parameter_table = [[0.1, 0.3, 0.5, 0.7, 0.9]]
+        # self.parameter_table = [[0.01, 0.1, 1, 10, 100, 1000], [0.01, 0.1, 1, 10, 100, 1000]]
+        self.parameter_table = [[]]
+        for i in range(0,5):
+            self.parameter_table[0].append(0.1 * (i+1))
 
 
 class Timer:
