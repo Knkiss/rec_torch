@@ -30,10 +30,10 @@ ssl_temp = 0.2  # 对比loss温度系数
 ssl_reg = 0.1  # 对比loss比例
 SGL_RATIO = 0.5  # 图生成比例
 
-entity_num_per_item = 10  # 一个item取多少个entity
-kg_p_drop = 0.5  # kg去边概率
-ui_p_drop = 0.1  # ui去边概率
-KGCL_ablated_model = 3  # optional=[0,1,2,3]
+KGDataset_entity_num_per_item = 10  # 一个item取多少个entity
+KGCL_kg_p_drop = 0.5  # kg去边概率
+KGCL_ui_p_drop = 0.1  # ui去边概率
+KGCL_my_ablated_model = 1  # optional=[0,1]  1=双KG不起作用，得到的Cui均为1
 
 SSM_Loss_temp = 0.2  # 温度系数 越小对正负例区分越大
 SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前

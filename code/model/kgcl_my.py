@@ -80,7 +80,7 @@ class KGCL_my(model.AbstractRecModel):
         kg_weights = kg_weights.where(kg_weights > 0.3, torch.ones_like(kg_weights) * 0.3)
 
         # overall probability of keep
-        weights = (1 - world.ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
+        weights = (1 - world.KGCL_ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
         weights = weights.where(weights < 0.95, torch.ones_like(weights) * 0.95)
 
         item_mask = torch.bernoulli(weights).to(torch.bool)
@@ -93,8 +93,12 @@ class KGCL_my(model.AbstractRecModel):
         all_items_2 = self.cal_item_embedding_from_kg(view2)  # items * dims
 
         # DIFF 性能提升 Cui计算的 u_emb i_emb 经过LightGCN
-        all_users_1, all_items_1 = self.lightGCN(self.embedding_user.weight, all_items_1, self.Graph)
-        all_users_2, all_items_2 = self.lightGCN(self.embedding_user.weight, all_items_2, self.Graph)
+        if world.KGCL_my_ablated_model == 1:
+            dropout = False
+        else:
+            dropout = True
+        all_users_1, all_items_1 = self.lightGCN(self.embedding_user.weight, all_items_1, self.Graph, dropout=dropout)
+        all_users_2, all_items_2 = self.lightGCN(self.embedding_user.weight, all_items_2, self.Graph, dropout=dropout)
 
         # DIFF 性能提升 计算Cui
         user1_emb = all_users_1[self.ui_dataset.trainUser]  # inters * dims
@@ -105,12 +109,12 @@ class KGCL_my(model.AbstractRecModel):
         inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
         inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
 
-        sim = F.cosine_similarity(inter_1, inter_2)  # inters 交互数量
+        sim = F.cosine_similarity(inter_1, inter_2)  # inters
         return sim
 
     def get_kg_views(self):
-        view1 = utils.drop_edge_random(self.kg_dict, world.kg_p_drop, self.num_entities)
-        view2 = utils.drop_edge_random(self.kg_dict, world.kg_p_drop, self.num_entities)
+        view1 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
+        view2 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
         return view1, view2
 
     def cal_item_embedding_from_kg(self, kg: dict):
@@ -119,12 +123,13 @@ class KGCL_my(model.AbstractRecModel):
         item_relations = torch.stack(list(self.item2relations.values()))
         entity_embs = self.embedding_entity(item_entities.long())  # item_num, entity_num_each, emb_dim
         relation_embs = torch.mul(self.embedding_relation.weight, self.W_R)[item_relations]
-        padding_mask = torch.where(item_entities != self.num_entities, torch.ones_like(item_entities), torch.zeros_like(item_entities)).float()
+        padding_mask = torch.where(item_entities != self.num_entities, torch.ones_like(item_entities),
+                                   torch.zeros_like(item_entities)).float()
         return self.gat.forward_relation(item_embs, entity_embs, relation_embs, padding_mask)
 
     def prepare_each_epoch(self):
         kgv1, kgv2 = self.get_kg_views()
-        if world.KGCL_ablated_model == 3:  # Ablated KG视角是相同情况下，即无对比学习
+        if world.KGCL_my_ablated_model == 1:
             kgv2 = kgv1.copy()
         stability = self.item_kg_stability(kgv1, kgv2).to(world.device)
         uiv1 = self.get_ui_views_weighted(stability, 1)
@@ -135,7 +140,8 @@ class KGCL_my(model.AbstractRecModel):
         return self.lightGCN(self.embedding_user.weight, self.cal_item_embedding_from_kg(kg_graph), ui_graph)
 
     def calculate_embedding(self):
-        return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)  # DIFF 性能提升 在BPR和test中不使用entity
+        # DIFF 性能提升 在BPR和test中不使用entity
+        return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
 
     def calculate_loss(self, users, pos, neg):
         loss = {}

@@ -79,7 +79,7 @@ class KGCL(model.AbstractRecModel):
         kg_weights = kg_weights.where(kg_weights > 0.3, torch.ones_like(kg_weights) * 0.3)
 
         # overall probability of keep
-        weights = (1 - world.ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
+        weights = (1 - world.KGCL_ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
         weights = weights.where(weights < 0.95, torch.ones_like(weights) * 0.95)
 
         item_mask = torch.bernoulli(weights).to(torch.bool)
@@ -96,8 +96,8 @@ class KGCL(model.AbstractRecModel):
         return sim
 
     def get_kg_views(self):
-        view1 = utils.drop_edge_random(self.kg_dict, world.kg_p_drop, self.num_entities)
-        view2 = utils.drop_edge_random(self.kg_dict, world.kg_p_drop, self.num_entities)
+        view1 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
+        view2 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
         return view1, view2
 
     def cal_item_embedding_from_kg(self, kg: dict):

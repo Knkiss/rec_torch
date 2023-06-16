@@ -209,7 +209,7 @@ class KGDataset(Dataset):
         return self.kg_data['r'].max() + 2
 
     def get_kg_dict(self, item_num):
-        entity_num = world.entity_num_per_item
+        entity_num = world.KGDataset_entity_num_per_item
         i2es = dict()
         i2rs = dict()
         for item in range(item_num):
@@ -250,7 +250,7 @@ class KGDataset(Dataset):
             h, r, t = row[1]
             kg_dict[h].append((r, t))
 
-        entity_num = world.entity_num_per_item
+        entity_num = world.KGDataset_entity_num_per_item
         i2es = dict()
         i2rs = dict()
         for item in range(item_num):
