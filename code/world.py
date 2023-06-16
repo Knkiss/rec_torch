@@ -45,7 +45,7 @@ SSM_Margin = 1
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='MF')
+    parser.add_argument('--model', type=str, default='SimGCL')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL
@@ -64,7 +64,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
     parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
@@ -99,6 +99,7 @@ OUTPUT_PATH = join(ROOT_PATH, 'output')
 PRETRAIN_PATH = join(OUTPUT_PATH, 'pretrain')
 BOARD_PATH = join(OUTPUT_PATH, 'tensorboard_cache')
 PREDICT_PATH = join(OUTPUT_PATH, 'predict')
+RECORD_PATH = join(OUTPUT_PATH, 'record')
 
 tensorboard_instance = None
 
