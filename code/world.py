@@ -137,12 +137,12 @@ if model == 'MF':
 # endregion
 
 
-print('\n--------------------- Settings ---------------------')
-i = 0
-a = globals()
-for i in a:
-    if isinstance(a[i], (float, str, int, list, bool)):
-        if a[i] == 'i' or i.__contains__('__'):
-            continue
-        print(i + ": " + str(a[i]))
-print('----------------------------------------------------')
+def print_arguments():
+    print('\n--------------------- Settings ---------------------')
+    a = globals()
+    for i in a:
+        if isinstance(a[i], (float, str, int, list, bool)):
+            if a[i] == 'i' or i.__contains__('__'):
+                continue
+            print(i + ": " + str(a[i]))
+    print('----------------------------------------------------')

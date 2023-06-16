@@ -357,6 +357,7 @@ class Timer:
 
 
 if __name__ == '__main__':
+    world.print_arguments()
     if world.searcher:
         Search()
     else:
