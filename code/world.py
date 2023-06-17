@@ -100,6 +100,7 @@ PRETRAIN_PATH = join(OUTPUT_PATH, 'pretrain')
 BOARD_PATH = join(OUTPUT_PATH, 'tensorboard_cache')
 PREDICT_PATH = join(OUTPUT_PATH, 'predict')
 RECORD_PATH = join(OUTPUT_PATH, 'record')
+PLOT_PATH = join(OUTPUT_PATH, 'plot')
 
 tensorboard_instance = None
 
