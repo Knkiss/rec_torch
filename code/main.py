@@ -316,20 +316,30 @@ class Search:
     @staticmethod
     def set_parameters(parameters):
         para_dict = {}
+        # 模型与数据集切换测试
+        world.model = parameters[0]
+        para_dict['model'] = parameters[0]
+        world.dataset = parameters[1]
+        para_dict['dataset'] = parameters[1]
+        # 参数搜索
         # world.test_ratio_2 = parameters[0]
         # para_dict['test_ratio_2'] = parameters[0]
         # world.test_ratio = parameters[1]
         # para_dict['test_ratio'] = parameters[1]
-        world.SSM_Loss_temp = parameters[0]
-        para_dict['SSM_Loss_temp'] = parameters[0]
+        # world.SSM_Loss_temp = parameters[0]
+        # para_dict['SSM_Loss_temp'] = parameters[0]
         return para_dict
 
     # Need Change
     def set_parameters_table(self):
+        # 模型与数据集切换测试
+        self.parameter_table = [['MF', 'LightGCN', 'SGL', 'SimGCL'],
+                                ['amazonbook', 'bookcrossing', 'movielens1m_kg', 'yelp2018_kg', 'lastfm_kg']]
+        # 参数搜索
         # self.parameter_table = [[0.01, 0.1, 1, 10, 100, 1000], [0.01, 0.1, 1, 10, 100, 1000]]
-        self.parameter_table = [[]]
-        for i in range(0,5):
-            self.parameter_table[0].append(0.1 * (i+1))
+        # self.parameter_table = [[]]
+        # for i in range(0,5):
+        #     self.parameter_table[0].append(0.1 * (i+1))
 
 
 class Timer:

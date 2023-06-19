@@ -79,7 +79,7 @@ def RQ0_calculate_all(datasets, models, debug=False):
                     print(file, '未存在，计算结果')
                 RQ0_calculate.main(dataset, model)
             except Exception:
-                print(file, '计算失败，跳过并中止画图程序')
+                print(file, '计算失败')
                 finish = False
                 continue
         elif debug:

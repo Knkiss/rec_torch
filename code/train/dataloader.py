@@ -24,7 +24,9 @@ import world
 
 
 class UIDataset(Dataset):
-    def __init__(self, path=join(world.DATA_PATH, world.dataset)):
+    def __init__(self, path=None):
+        if path is None:
+            path = join(world.DATA_PATH, world.dataset)
         print(f'loading [{path}]')
         self.n_user = 0
         self.m_item = 0
@@ -193,7 +195,9 @@ class UIDataset(Dataset):
 
 
 class KGDataset(Dataset):
-    def __init__(self, kg_path=join(world.DATA_PATH, world.dataset, "kg.txt")):
+    def __init__(self, kg_path=None):
+        if kg_path is None:
+            kg_path = join(world.DATA_PATH, world.dataset, "kg.txt")
         kg_data = pd.read_csv(kg_path, sep=' ', names=['h', 'r', 't'], engine='python')
         self.kg_data = kg_data.drop_duplicates()
         self.kg_dict, self.heads = self.generate_kg_data()

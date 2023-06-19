@@ -33,7 +33,7 @@ SGL_RATIO = 0.5  # 图生成比例
 KGDataset_entity_num_per_item = 10  # 一个item取多少个entity
 KGCL_kg_p_drop = 0.5  # kg去边概率
 KGCL_ui_p_drop = 0.1  # ui去边概率
-KGCL_my_ablated_model = 1  # optional=[0,1]  1=双KG不起作用，得到的Cui均为1
+KGCL_my_ablated_model = 0  # optional=[0,1]  1=双KG不起作用，得到的Cui均为1
 
 SSM_Loss_temp = 0.2  # 温度系数 越小对正负例区分越大
 SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
@@ -45,7 +45,7 @@ SSM_Margin = 1
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='SimGCL')
+    parser.add_argument('--model', type=str, default='KGCL_my')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL
@@ -64,10 +64,10 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
-    parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
+    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
     parser.add_argument('--time_calculate', type=bool, default=False)  # 是否开启时间统计
     return parser.parse_args()
 
