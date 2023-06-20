@@ -98,6 +98,7 @@ def ui_to_iu(input_train, input_test, output_iu):
 
 def kg_resort(i_n, input_file, output_file):
     origin_kg_data = pd.read_csv(input_file, sep=' ', names=['h', 'r', 't'], engine='python')
+    print(origin_kg_data.min(), origin_kg_data.max())
 
     h = origin_kg_data[origin_kg_data['h'] <= i_n]
     t = origin_kg_data[origin_kg_data['t'] <= i_n]
@@ -128,7 +129,8 @@ def kg_resort(i_n, input_file, output_file):
 
 
 if __name__ == '__main__':
-    dataset = 'amazonbook_wxkg'
+    dataset = 'movielens1m_kg'
+    item_num = 2346
 
     file_train = dataset + '/train.txt'
     file_test = dataset + '/test.txt'
@@ -140,5 +142,4 @@ if __name__ == '__main__':
     # kg_split('kg_final.txt')
     # ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
 
-    item_num = None
-    kg_resort(item_num, file_kg_graph, file_kg)
+    kg_resort(item_num, file_kg, file_kg)
