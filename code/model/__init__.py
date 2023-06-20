@@ -11,6 +11,7 @@ from model.ssm import SSM
 from model.graphadd import GraphADD
 from model.pcl import PCL
 from model.simgcl import SimGCL
+from model.kgin import KGIN
 
 
 def get_model_by_name(name):

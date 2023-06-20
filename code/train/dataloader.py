@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, coo_matrix
 
 import scipy.sparse as sp
 
@@ -211,6 +211,13 @@ class KGDataset(Dataset):
     @property
     def relation_count(self):
         return self.kg_data['r'].max() + 2
+
+    def get_kg_graph(self):
+        head = self.kg_data['h'].values
+        tail = self.kg_data['t'].values
+        value = self.kg_data['r'].values
+        kg_graph = coo_matrix((value, (head, tail)), shape=(head.max() + tail.max() + 2, tail.max() + head.max() + 2))
+        return kg_graph
 
     def get_kg_dict(self, item_num):
         entity_num = world.KGDataset_entity_num_per_item

@@ -333,8 +333,8 @@ class Search:
     # Need Change
     def set_parameters_table(self):
         # 模型与数据集切换测试
-        self.parameter_table = [['MF', 'LightGCN', 'SGL', 'SimGCL'],
-                                ['amazonbook', 'bookcrossing', 'movielens1m_kg', 'yelp2018_kg', 'lastfm_kg']]
+        self.parameter_table = [['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF'],
+                                ['amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
         # 参数搜索
         # self.parameter_table = [[0.01, 0.1, 1, 10, 100, 1000], [0.01, 0.1, 1, 10, 100, 1000]]
         # self.parameter_table = [[]]
