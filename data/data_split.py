@@ -1,6 +1,8 @@
 import os
 
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 
 def get_dict_from_data(data):
@@ -94,12 +96,49 @@ def ui_to_iu(input_train, input_test, output_iu):
             f.write('\n')
 
 
+def kg_resort(i_n, input_file, output_file):
+    origin_kg_data = pd.read_csv(input_file, sep=' ', names=['h', 'r', 't'], engine='python')
+
+    h = origin_kg_data[origin_kg_data['h'] <= i_n]
+    t = origin_kg_data[origin_kg_data['t'] <= i_n]
+    h = h[h['t'] > i_n]
+    t = t[t['h'] > i_n]
+    t[['h', 't']] = t[['t', 'h']]
+    process_kg_data = pd.concat([h, t])
+
+    sub = pd.Series({'h': 0, 'r': 0, 't': i_n})
+    process_kg_data = process_kg_data - sub
+    process_kg_data = process_kg_data.sort_values(by=['h', 'r', 't'], ignore_index=True)
+
+    # 对tail从0重新排序
+    j = 0
+    for i in tqdm(range(process_kg_data['t'].max() + 1)):
+        if len(process_kg_data[process_kg_data['t'] == i]) > 0:
+            process_kg_data.loc[process_kg_data['t'] == i, ['t']] = j
+            j += 1
+
+    # 对relation从0重新排序
+    j = 0
+    for i in tqdm(range(process_kg_data['r'].max() + 1)):
+        if len(process_kg_data[process_kg_data['r'] == i]) > 0:
+            process_kg_data.loc[process_kg_data['r'] == i, ['r']] = j
+            j += 1
+
+    process_kg_data.to_csv(output_file, sep=' ', header=False, index=False)
+
+
 if __name__ == '__main__':
-    dataset = 'lastfm_kg'
+    dataset = 'amazonbook_wxkg'
+
     file_train = dataset + '/train.txt'
     file_test = dataset + '/test.txt'
     file_iu = dataset + '/iu.txt'
+    file_kg_graph = dataset + '/kg_graph.txt'
+    file_kg = dataset + '/kg.txt'
 
     # train_test_split('ratings_final', test_ratio=0.2)
     # kg_split('kg_final.txt')
-    ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
+    # ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
+
+    item_num = None
+    kg_resort(item_num, file_kg_graph, file_kg)

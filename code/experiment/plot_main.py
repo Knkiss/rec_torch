@@ -92,9 +92,11 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'bookcrossing', 'lastfm_kg', 'movielens1m_kg', 'yelp2018_kg']
-    model_list = ['KGCL_my', 'KGCL', 'LightGCN', 'MF']
+    model_list = ['KGCL_my', 'KGCL', 'SGL', 'LightGCN', 'MF']
+    debug = False
+    save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
 
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type='png', debug=False)
+    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)

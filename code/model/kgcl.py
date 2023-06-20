@@ -136,12 +136,7 @@ class KGCL(model.AbstractRecModel):
         return loss
 
     def calculate_loss_transE(self, h, r, pos_t, neg_t):
-        # 不同KG标注不一样
-        if world.dataset == 'movielens1m_kg' or world.dataset == 'bookcrossing':
-            loss = losses.loss_transE(self.embedding_entity, self.embedding_entity, self.embedding_relation,
-                                      h, r, pos_t, neg_t)
-        else:
-            loss = losses.loss_transE(self.embedding_item, self.embedding_entity, self.embedding_relation,
-                                      h, r, pos_t, neg_t)
+        loss = losses.loss_transE(self.embedding_item, self.embedding_entity, self.embedding_relation,
+                                  h, r, pos_t, neg_t)
         return loss
     

@@ -51,12 +51,11 @@ def parse_args():
     # KG-based: KGCL
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
-    parser.add_argument('--dataset', type=str, default='amazonbook')
-    # classic: amazonbook、bookcrossing、citeulikea、lastfm、lastfm_kg、movielens1m、movielens1m_kg、yelp2018、yelp2018_kg
-    # KG-based: amazonbook、bookcrossing、movielens1m_kg、yelp2018_kg、lastfm_kg
-    # 不可用：MIND
+    parser.add_argument('--dataset', type=str, default='movielens1m_kg')
+    # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
+    # KG数据集: 'amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg'
 
-    # PCL文章使用：amazonbook、lastfm
+    # PCL文章使用：'amazonbook', 'lastfm'
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")
     parser.add_argument('--train_batch', type=int, default=2048)
@@ -64,7 +63,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
     parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
@@ -106,7 +105,7 @@ tensorboard_instance = None
 
 early_stop_epoch_cnt = 15  # 早停计数器
 early_stop_metric = metrics[-1]
-test_start_epoch = 5  # 测试开始epoch
+test_start_epoch = 1  # 测试开始epoch
 test_verbose_epoch = 1  # 测试间隔epoch
 
 pretrain_input_enable = False  # 使用预训练Emb
