@@ -53,7 +53,7 @@ def parse_args():
     # unUse: QKV、GraphCL
     parser.add_argument('--dataset', type=str, default='movielens1m_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
-    # KG数据集: 'amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg'
+    # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
 
     # PCL文章使用：'amazonbook', 'lastfm'
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],

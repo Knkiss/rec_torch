@@ -17,12 +17,15 @@ warnings.filterwarnings('ignore')
 marker_list = ['d', '>', 'o', '*', '^', 'v', '+', 's']
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'r']
 metric_list = ['recall', 'precision', 'ndcg', 'map', 'hit_ratio']
-metric_list_name = ['Recall', 'Precision', 'NDCG', 'MAP', 'Hit Ratio']
+metric_list_name = ['Recall', 'Precision', 'NDCG', 'MAP', 'HR']
 
 
 def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
+    performance_table = {}
     for dataset in datasets:
+        performance_table[dataset] = {}
         for metric in metric_list:
+            performance_table[dataset][metric] = {}
             data = {}
             y_max, y_min = 0, 1
 
@@ -30,6 +33,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
                 record_file = os.path.join(world.RECORD_PATH, dataset + '_' + model + '.npy')
                 load_dict: dict = np.load(record_file, allow_pickle=True).item()
                 data[model] = load_dict[model]['result'][metric]
+                performance_table[dataset][metric][model] = data[model][-1]
                 y_max = max(y_max, max(data[model]))
                 y_min = min(y_min, min(data[model]))
 
@@ -68,6 +72,19 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
                 plt.close()
     print("RQ1：所有数据集独立Top-N 绘制完成")
 
+    for dataset in datasets:
+        print(dataset.ljust(15, ' '), end='')
+        # print(''.ljust(10, ' '), end='')
+        for i in metric_list_name:
+            print(i.rjust(12, ' '), end=' ')
+        print()
+        for i in models:
+            print(i.ljust(15, ' '), end='')
+            for j in metric_list:
+                print(str(round(performance_table[dataset][j][i] * 10000) / 10000).rjust(12, ' '), end=' ')
+            print()
+        print()
+
 
 def RQ0_calculate_all(datasets, models, debug=False):
     finish = True
@@ -78,7 +95,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
                 if debug:
                     print(file, '未存在，计算结果')
                 RQ0_calculate.main(dataset, model)
-            except Exception:
+            except Exception as e:
+                print(e)
                 print(file, '计算失败')
                 finish = False
                 continue
@@ -91,9 +109,9 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 
 if __name__ == '__main__':
-    dataset_list = ['amazonbook', 'bookcrossing', 'lastfm_kg', 'movielens1m_kg', 'yelp2018_kg']
-    model_list = ['KGCL_my', 'KGCL', 'SGL', 'LightGCN', 'MF']
-    debug = False
+    dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
+    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF']
+    debug = True
     save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
