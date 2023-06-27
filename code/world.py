@@ -45,13 +45,13 @@ SSM_Margin = 1
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGCL_my')
+    parser.add_argument('--model', type=str, default='KGIN')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
-    parser.add_argument('--dataset', type=str, default='movielens1m_kg')
+    parser.add_argument('--dataset', type=str, default='amazonbook')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
 

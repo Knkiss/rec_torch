@@ -214,9 +214,9 @@ class KGDataset(Dataset):
 
     def get_kg_graph(self):
         head = self.kg_data['h'].values
-        tail = self.kg_data['t'].values
+        tail = self.kg_data['t'].values + head.max()
         value = self.kg_data['r'].values
-        kg_graph = coo_matrix((value, (head, tail)), shape=(head.max() + tail.max() + 2, tail.max() + head.max() + 2))
+        kg_graph = coo_matrix((value, (head, tail)), shape=(tail.max() + 1, tail.max() + 1))
         return kg_graph
 
     def get_kg_dict(self, item_num):
