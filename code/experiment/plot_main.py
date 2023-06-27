@@ -20,7 +20,7 @@ metric_list = ['recall', 'precision', 'ndcg', 'map', 'hit_ratio']
 metric_list_name = ['Recall', 'Precision', 'NDCG', 'MAP', 'HR']
 
 
-def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
+def RQ1_compare_all(datasets, models, x_ticks, type='png', show=False, save=True):
     performance_table = {}
     for dataset in datasets:
         performance_table[dataset] = {}
@@ -63,9 +63,9 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
 
             output_dir = os.path.join(world.PLOT_PATH, 'RQ1')
 
-            if debug:
+            if show:
                 plt.show()
-            else:
+            elif save:
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
                 plt.savefig(os.path.join(output_dir, dataset + '_' + metric + '.' + type), dpi=900, bbox_inches='tight')
@@ -111,9 +111,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
     model_list = ['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF']
-    debug = True
     save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)
+    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, show=False, save=False)
