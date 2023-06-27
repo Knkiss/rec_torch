@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument('--model', type=str, default='KGIN')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
-    # KG-based: KGCL
+    # KG-based: KGCL、KGIN
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
     parser.add_argument('--dataset', type=str, default='amazonbook')

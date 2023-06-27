@@ -1,17 +1,17 @@
 from model.abstract_model import AbstractRecModel
-from model.mf import MF
-from model.lightgcn import LightGCN
-from model.sgl import SGL
-from model.qkv import QKV
-from model.graphcl import GraphCL
-from model.kgcl import KGCL
-from model.gat import GAT
-from model.kgcl_my import KGCL_my
-from model.ssm import SSM
-from model.graphadd import GraphADD
-from model.pcl import PCL
-from model.simgcl import SimGCL
-from model.kgin import KGIN
+from model.general.mf import MF
+from model.general.lightgcn import LightGCN
+from model.general.sgl import SGL
+from model.mine.qkv import QKV
+from model.mine.graphcl import GraphCL
+from model.knowledge.kgcl import KGCL
+from model.knowledge.gat import GAT
+from model.mine.kgcl_my import KGCL_my
+from model.general.ssm import SSM
+from model.mine.graphadd import GraphADD
+from model.mine.pcl import PCL
+from model.general.simgcl import SimGCL
+from model.knowledge.kgin import KGIN
 
 
 def get_model_by_name(name):
