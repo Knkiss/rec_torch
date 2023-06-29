@@ -103,14 +103,14 @@ def RQ0_calculate_all(datasets, models, debug=False):
         elif debug:
             print(file, '已存在')
     if finish:
-        print("RQ0：所有数据处理完毕，开始画图")
+        print("RQ0：所有数据处理完毕")
     else:
-        raise FileNotFoundError("数据处理异常，请检查")
+        raise FileNotFoundError("RQ0：数据处理异常，请检查失败原因后重新运行")
 
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
-    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF']
+    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'SGL', 'LightGCN', 'MF']
     save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])

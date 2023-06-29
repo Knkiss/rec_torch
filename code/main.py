@@ -62,7 +62,7 @@ class Manager:
         self.rec_model = self.rec_model.to(world.device)
 
         # DIFF 性能提升 去掉Trans的计算
-        if world.model == 'KGCL':
+        if world.model == 'KGCL' or world.model == 'KGAT':
             self.procedure = [Procedure.Train_Trans, Procedure.Train_Rec, Procedure.Test]
 
     def __prepare_optimizer(self):

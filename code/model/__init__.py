@@ -12,6 +12,7 @@ from model.mine.graphadd import GraphADD
 from model.mine.pcl import PCL
 from model.general.simgcl import SimGCL
 from model.knowledge.kgin import KGIN
+from model.knowledge.kgat import KGAT
 
 
 def get_model_by_name(name):
