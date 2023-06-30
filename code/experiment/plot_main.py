@@ -14,13 +14,14 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-marker_list = ['d', '>', 'o', '*', '^', 'v', '+', 's']
-color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'r']
+marker_list = ['d', '>', 'o', '*', '^', 'v', '+', 's', '8', 'p', 'P', 'h']
+color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'dimgray', 'gray', 'darkgray', 'lightgray', 'r']
 metric_list = ['recall', 'precision', 'ndcg', 'map', 'hit_ratio']
 metric_list_name = ['Recall', 'Precision', 'NDCG', 'MAP', 'HR']
 
 
-def RQ1_compare_all(datasets, models, x_ticks, type='png', show=False, save=True):
+def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_save=True,
+                    table_dataset_show=True, table_metrics_show=False, table_latex_show=False):
     performance_table = {}
     for dataset in datasets:
         performance_table[dataset] = {}
@@ -63,27 +64,45 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', show=False, save=True
 
             output_dir = os.path.join(world.PLOT_PATH, 'RQ1')
 
-            if show:
+            if fig_show:
                 plt.show()
-            elif save:
+            elif fig_save:
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
                 plt.savefig(os.path.join(output_dir, dataset + '_' + metric + '.' + type), dpi=900, bbox_inches='tight')
                 plt.close()
     print("RQ1：所有数据集独立Top-N 绘制完成")
 
-    for dataset in datasets:
-        print(dataset.ljust(15, ' '), end='')
-        # print(''.ljust(10, ' '), end='')
-        for i in metric_list_name:
-            print(i.rjust(12, ' '), end=' ')
-        print()
-        for i in models:
-            print(i.ljust(15, ' '), end='')
-            for j in metric_list:
-                print(str(round(performance_table[dataset][j][i] * 10000) / 10000).rjust(12, ' '), end=' ')
+    if table_dataset_show:
+        for dataset in datasets:
+            print(dataset.ljust(15, ' '), end='')
+            # print(''.ljust(10, ' '), end='')
+            for i in metric_list_name:
+                print(i.rjust(15, ' '), end=' ')
             print()
-        print()
+            for i in models:
+                print(i.ljust(15, ' '), end='')
+                for j in metric_list:
+                    print(str(round(performance_table[dataset][j][i] * 10000) / 10000).rjust(15, ' '), end=' ')
+                print()
+            print()
+
+    if table_metrics_show:
+        for metric in metric_list:
+            print(metric.ljust(15, ' '), end='')
+            for i in datasets:
+                print(i.rjust(15, ' '), end=' ')
+            print()
+            for i in models:
+                print(i.ljust(15, ' '), end='')
+                for j in datasets:
+                    print(str(round(performance_table[j][metric][i] * 10000) / 10000).rjust(15, ' '), end=' ')
+                print()
+            print()
+
+    if table_latex_show:
+        # TODO latex文章内表格形式
+        pass
 
 
 def RQ0_calculate_all(datasets, models, debug=False):
@@ -110,9 +129,10 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
-    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'SGL', 'LightGCN', 'MF']
+    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'KGCN', 'SGL', 'LightGCN', 'MF', 'SSM', 'PCL']
     save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, show=False, save=False)
+    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, fig_show=False,
+                    fig_save=False, table_dataset_show=False, table_metrics_show=True, table_latex_show=False)
