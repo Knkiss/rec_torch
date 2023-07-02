@@ -14,6 +14,8 @@ import torch
 test_ratio = 1
 test_ratio_2 = 1
 
+KGIN_n = 4
+
 # region 模型参数设置
 # region 推荐
 seed = 2020
@@ -126,15 +128,16 @@ if linux_nohup:
     mail_on_stop_enable = True
 # endregion
 
-# region 数据集设置
-pass
-# endregion
-
-# region 模型设置
-pass
 if model == 'MF':
     early_stop_epoch_cnt = 30
-# endregion
+
+if model == 'KGIN':
+    if dataset in ['yelp2018kg']:
+        KGIN_n = 2
+    elif dataset in ['amazonbook', 'bookcrossing', 'movielens1m_kg']:
+        KGIN_n = 3
+    elif dataset in ['lastfm_wxkg', 'lastfm_kg']:
+        KGIN_n = 4
 
 
 def print_arguments():
