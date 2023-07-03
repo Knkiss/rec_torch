@@ -14,6 +14,7 @@ from model.general.simgcl import SimGCL
 from model.knowledge.kgin import KGIN
 from model.knowledge.kgat import KGAT
 from model.knowledge.kgcn import KGCN
+from model.knowledge.cke import CKE
 
 
 def get_model_by_name(name):
