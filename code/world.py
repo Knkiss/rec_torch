@@ -14,7 +14,8 @@ import torch
 test_ratio = 1
 test_ratio_2 = 1
 
-KGIN_n = 4
+KGIN_n = 4  # [2, 3, 4, 5]
+KGAT_layers = [64]  # [64], [64, 64], [64, 64, 64], [64, 32], [64, 32, 16]
 
 # region 模型参数设置
 # region 推荐

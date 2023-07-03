@@ -1,3 +1,4 @@
+from torch.nn import Module
 from typing import Callable, TypeVar
 
 import numpy as np
@@ -36,13 +37,14 @@ class KGAT(model.AbstractRecModel):
         # load parameters info
         self.embedding_size = world.embedding_dim
         self.kg_embedding_size = world.embedding_dim
-        self.layers = [self.embedding_size] + [64]
+        self.layers = world.KGAT_layers
         self.aggregator_type = 'bi'
         self.mess_dropout = 0.1
         self.reg_weight = 1e-5
 
         # generate intermediate data
         self.A_in = (self.init_graph())  # init the attention matrix by the structure of ckg
+        self.A_in.requires_grad = False
 
         # define layers and loss
         self.user_embedding = torch.nn.Embedding(self.n_users, self.embedding_size)
@@ -62,40 +64,6 @@ class KGAT(model.AbstractRecModel):
         return self.calculate_embedding()
 
     def apply(self: T, fn: Callable[['Module'], None]) -> T:
-        r"""Applies ``fn`` recursively to every submodule (as returned by ``.children()``)
-        as well as self. Typical use includes initializing the parameters of a model
-        (see also :ref:`nn-init-doc`).
-
-        Args:
-            fn (:class:`Module` -> None): function to be applied to each submodule
-
-        Returns:
-            Module: self
-
-        Example::
-
-            >>> @torch.no_grad()
-            >>> def init_weights(m):
-            >>>     print(m)
-            >>>     if type(m) == nn.Linear:
-            >>>         m.weight.fill_(1.0)
-            >>>         print(m.weight)
-            >>> net = nn.Sequential(nn.Linear(2, 2), nn.Linear(2, 2))
-            >>> net.apply(init_weights)
-            Linear(in_features=2, out_features=2, bias=True)
-            Parameter containing:
-            tensor([[1., 1.],
-                    [1., 1.]], requires_grad=True)
-            Linear(in_features=2, out_features=2, bias=True)
-            Parameter containing:
-            tensor([[1., 1.],
-                    [1., 1.]], requires_grad=True)
-            Sequential(
-              (0): Linear(in_features=2, out_features=2, bias=True)
-              (1): Linear(in_features=2, out_features=2, bias=True)
-            )
-
-        """
         for module in self.children():
             module.apply(fn)
         fn(self)
@@ -160,24 +128,25 @@ class KGAT(model.AbstractRecModel):
             col, row = dgl.edge_subgraph(self.ckg, edge_idxs, relabel_nodes=False).adj().coo()
             col, row = col.numpy(), row.numpy()
             data = np.ones(col.shape[0]).astype(np.int64)
-            sub_graph = (sp.coo_matrix((data, (col, row)), shape=(self.ckg.number_of_nodes(), self.ckg.number_of_nodes()), dtype=np.float32))
-            # sub_graph = (sp.coo_matrix((data, (col, row)), dtype=np.float32))
+            sub_graph = (sp.coo_matrix(
+                (data, (col, row)), shape=(self.ckg.number_of_nodes(), self.ckg.number_of_nodes()), dtype=np.float32))
             rowsum = np.array(sub_graph.sum(1))
-            d_inv = np.power(rowsum, -1).flatten()
+            # 源代码有无穷大运行时警告，chatgpt修改
+            # 源代码：d_inv = np.power(rowsum, -1).flatten()
+            d_inv = np.where(rowsum != 0, np.power(rowsum, -1), 0).flatten()
             d_inv[np.isinf(d_inv)] = 0.0
             d_mat_inv = sp.diags(d_inv)
             norm_adj = d_mat_inv.dot(sub_graph).tocoo()
             adj_list.append(norm_adj)
 
         final_adj_matrix = sum(adj_list).tocoo()
-        indices = torch.LongTensor([final_adj_matrix.row, final_adj_matrix.col])
+        indices = torch.LongTensor(np.array([final_adj_matrix.row, final_adj_matrix.col]))
         values = torch.FloatTensor(final_adj_matrix.data)
         adj_matrix_tensor = torch.sparse.FloatTensor(indices, values, self.matrix_size)
         return adj_matrix_tensor.to(world.device)
 
     def calculate_loss(self, users, pos, neg):
         loss = {}
-
         user_all_embeddings, entity_all_embeddings = self.forward()
         u_embeddings = user_all_embeddings[users.long()]
         pos_embeddings = entity_all_embeddings[pos.long()]
@@ -279,16 +248,10 @@ class KGAT(model.AbstractRecModel):
         # Current PyTorch version does not support softmax on SparseCUDA, temporarily move to CPU to calculate softmax
         A_in = torch.sparse.FloatTensor(indices, kg_score, self.matrix_size).cpu()
         A_in = torch.sparse.softmax(A_in, dim=1).to(self.device)
-        self.A_in = A_in
+        self.A_in.data = A_in
 
     def prepare_each_epoch(self):
-        # 每epoch运行一次
-        # 例如：对比学习需要在每个epoch计算不同视图下的多种emb
-        # 可以通过此函数预先在batch计算外进行处理
-        # self.update_attentive_A()
-        pass
-
-
+        self.update_attentive_A()
 
 
 class Aggregator(torch.nn.Module):
