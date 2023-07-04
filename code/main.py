@@ -47,7 +47,7 @@ class Manager:
 
         self.procedure = []
 
-        utils.set_seed(world.seed)
+        utils.set_seed(world.sys_seed)
         self.__prepare_model()
         self.__prepare_optimizer()
         self.__prepare_tensorboard()
@@ -71,7 +71,7 @@ class Manager:
 
     def __prepare_tensorboard(self):
         if world.tensorboard_enable:
-            self.tensorboard = SummaryWriter(join(world.BOARD_PATH, time.strftime("%m-%d_%Hh%Mm%Ss_" +
+            self.tensorboard = SummaryWriter(join(world.PATH_BOARD, time.strftime("%m-%d_%Hh%Mm%Ss_" +
                                                                                   world.model + '_' + world.dataset)))
             world.tensorboard_instance = self.tensorboard
 
@@ -85,9 +85,9 @@ class Manager:
 
     def __loop_procedure(self):
         self.timer.start('time_sum')
-        for self.epoch in range(0, world.TRAIN_epochs):
-            world.epoch = self.epoch
-            if self.stopping_step == -1 or self.epoch == world.TRAIN_epochs - 1:
+        for self.epoch in range(0, world.sys_max_epochs):
+            world.sys_epoch = self.epoch
+            if self.stopping_step == -1 or self.epoch == world.sys_max_epochs - 1:
                 print("Best result: " + str(self.best_result))
                 break
             for i in self.procedure:
@@ -107,7 +107,7 @@ class Manager:
         KGLoader = DataLoader(self.rec_model.kg_dataset, batch_size=4096, drop_last=False)
         trans_loss = 0.
         with tqdm(KGLoader, file=sys.stdout, total=len(KGLoader),
-                  desc='Trans Epoch ' + str(world.epoch).zfill(3), disable=not world.tqdm_enable) as t:
+                  desc='Trans Epoch ' + str(world.sys_epoch).zfill(3), disable=not world.tqdm_enable) as t:
             for data in t:
                 heads = data[0].to(world.device)
                 relations = data[1].to(world.device)
@@ -162,21 +162,21 @@ class Manager:
             print('\033[0;31m' + str(self.best_result) + '\033[0m')
         elif self.epoch >= world.test_start_epoch and self.epoch % world.test_verbose_epoch == 0:
             result, predict = self.__Test()
-            if len(world.topKs) == 1:
+            if len(world.sys_topKs) == 1:
                 now = result[stop_metric]
                 best = self.best_result[stop_metric]
             else:
-                now = result[stop_metric][len(world.topKs) - 1]
-                best = self.best_result[stop_metric][len(world.topKs) - 1]
+                now = result[stop_metric][len(world.sys_topKs) - 1]
+                best = self.best_result[stop_metric][len(world.sys_topKs) - 1]
             if now > best:
                 self.stopping_step = 0
                 self.best_result = result
                 self.predict = predict
                 print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
                 if world.pretrain_output_enable:
-                    if not os.path.exists(world.PRETRAIN_PATH):
-                        os.makedirs(world.PRETRAIN_PATH)
-                    output = world.PRETRAIN_PATH + '/' + world.dataset + '_' + world.model + '.pretrain'
+                    if not os.path.exists(world.PATH_PRETRAIN):
+                        os.makedirs(world.PATH_PRETRAIN)
+                    output = world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.model + '.pretrain'
                     torch.save(self.rec_model.state_dict(), output)
             elif world.early_stop_enable:
                 print('\033[0;32m' + str(result) + '\033[0m')
@@ -192,10 +192,10 @@ class Manager:
         u_batch_size = world.test_u_batch_size
         dataset = self.rec_model.ui_dataset
         testDict: dict = dataset.testDict
-        max_K = max(world.topKs)
+        max_K = max(world.sys_topKs)
         results = {}
         for i in world.metrics:
-            results[i] = np.zeros(len(world.topKs))
+            results[i] = np.zeros(len(world.sys_topKs))
         with torch.no_grad():
             users = list(testDict.keys())
             try:
@@ -233,7 +233,7 @@ class Manager:
                 result_list = {}
                 for m in world.metrics:
                     result_list[m] = []
-                for k in world.topKs:
+                for k in world.sys_topKs:
                     for j in world.metrics:
                         if j == Metrics.Precision.value:
                             result_list[j].append(metrics.Precision_topK(r, k))
@@ -256,17 +256,17 @@ class Manager:
             if self.tensorboard is not None:
                 for metric in world.metrics:
                     self.tensorboard.add_scalars(f'Test/' + metric + '@',
-                                                 {str(world.topKs[i]): results[metric][i] for i in
-                                                  range(len(world.topKs))}, self.epoch)
+                                                 {str(world.sys_topKs[i]): results[metric][i] for i in
+                                                  range(len(world.sys_topKs))}, self.epoch)
             return results, rating_list
 
     def __close(self):
         if self.tensorboard is not None:
             self.tensorboard.close()
         if world.predict_list_enable:
-            if not os.path.exists(world.PREDICT_PATH):
-                os.makedirs(world.PREDICT_PATH)
-            with open(world.PREDICT_PATH + '/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
+            if not os.path.exists(world.PATH_PREDICT):
+                os.makedirs(world.PATH_PREDICT)
+            with open(world.PATH_PREDICT + '/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
                 for i in self.predict:
                     for j in i.numpy():
                         for k in j:
@@ -294,8 +294,8 @@ class Search:
             parameter_dict = self.set_parameters(parameter)
             result = Manager().best_result
             self.result.append(dict(result, **parameter_dict))
-            world.epoch = 0
-            world.root_model = False
+            world.sys_epoch = 0
+            world.sys_root_model = False
 
     def print_result(self, result):
         if result is self.result:
@@ -317,11 +317,13 @@ class Search:
     def set_parameters(parameters):
         para_dict = {}
         # 模型与数据集切换测试
-        world.model = parameters[0]
-        para_dict['model'] = parameters[0]
-        world.dataset = parameters[1]
-        para_dict['dataset'] = parameters[1]
+        # world.model = parameters[0]
+        # para_dict['model'] = parameters[0]
+        world.dataset = parameters[0]
+        para_dict['dataset'] = parameters[0]
         # 参数搜索
+        # world.hyper_ssl_reg = parameters[0]
+        # para_dict['ssl_reg'] = parameters[0]
         # world.test_ratio_2 = parameters[0]
         # para_dict['test_ratio_2'] = parameters[0]
         # world.test_ratio = parameters[1]
@@ -333,8 +335,10 @@ class Search:
     # Need Change
     def set_parameters_table(self):
         # 模型与数据集切换测试
-        self.parameter_table = [['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF'],
-                                ['amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
+        # self.parameter_table = [['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF'],
+        #                         ['amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
+        # self.parameter_table = [[0.1, 0.2, 0.3]]
+        self.parameter_table = [['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
         # 参数搜索
         # self.parameter_table = [[0.01, 0.1, 1, 10, 100, 1000], [0.01, 0.1, 1, 10, 100, 1000]]
         # self.parameter_table = [[]]

@@ -7,17 +7,17 @@ from train import dataloader
 class AbstractRecModel(nn.Module):
     def __init__(self):
         super().__init__()
-        if world.root_model:
+        if world.sys_root_model:
             return
-        world.root_model = True
+        world.sys_root_model = True
         self.ui_dataset = dataloader.UIDataset()
         self.num_users = self.ui_dataset.n_users
         self.num_items = self.ui_dataset.m_items
         self.Graph = self.ui_dataset.getSparseGraph()
 
-        self.embedding_dim = world.embedding_dim
+        self.embedding_dim = world.hyper_embedding_dim
         if world.pretrain_input_enable:
-            emb = torch.load(world.PRETRAIN_PATH + '/' + world.dataset + '_' + world.pretrain_input + '.pretrain')
+            emb = torch.load(world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.pretrain_input + '.pretrain')
             self.embedding_user = torch.nn.Embedding.from_pretrained(emb['embedding_user.weight'])
             self.embedding_item = torch.nn.Embedding.from_pretrained(emb['embedding_item.weight'])
             self.embedding_user.requires_grad_()

@@ -26,7 +26,7 @@ import world
 class UIDataset(Dataset):
     def __init__(self, path=None):
         if path is None:
-            path = join(world.DATA_PATH, world.dataset)
+            path = join(world.PATH_DATA, world.dataset)
         print(f'loading [{path}]')
         self.n_user = 0
         self.m_item = 0
@@ -197,11 +197,11 @@ class UIDataset(Dataset):
 class KGDataset(Dataset):
     def __init__(self, kg_path=None):
         if kg_path is None:
-            kg_path = join(world.DATA_PATH, world.dataset, "kg.txt")
+            kg_path = join(world.PATH_DATA, world.dataset, "kg.txt")
         kg_data = pd.read_csv(kg_path, sep=' ', names=['h', 'r', 't'], engine='python')
         self.kg_data = kg_data.drop_duplicates()
         self.kg_dict, self.heads = self.generate_kg_data()
-        self.item_net_path = join(world.DATA_PATH, world.dataset)
+        self.item_net_path = join(world.PATH_DATA, world.dataset)
         self.length = len(self.kg_dict)
 
     @property
@@ -220,7 +220,7 @@ class KGDataset(Dataset):
         return kg_graph
 
     def get_kg_dict(self, item_num):
-        entity_num = world.KGDataset_entity_num_per_item
+        entity_num = world.hyper_KGDataset_entity_num_per_item
         i2es = dict()
         i2rs = dict()
         for item in range(item_num):
@@ -261,7 +261,7 @@ class KGDataset(Dataset):
             h, r, t = row[1]
             kg_dict[h].append((r, t))
 
-        entity_num = world.KGDataset_entity_num_per_item
+        entity_num = world.hyper_KGDataset_entity_num_per_item
         i2es = dict()
         i2rs = dict()
         for item in range(item_num):

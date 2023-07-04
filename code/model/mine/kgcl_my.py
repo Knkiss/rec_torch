@@ -80,7 +80,7 @@ class KGCL_my(model.AbstractRecModel):
         kg_weights = kg_weights.where(kg_weights > 0.3, torch.ones_like(kg_weights) * 0.3)
 
         # overall probability of keep
-        weights = (1 - world.KGCL_ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
+        weights = (1 - world.hyper_KGCL_ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
         weights = weights.where(weights < 0.95, torch.ones_like(weights) * 0.95)
 
         item_mask = torch.bernoulli(weights).to(torch.bool)
@@ -93,7 +93,7 @@ class KGCL_my(model.AbstractRecModel):
         all_items_2 = self.cal_item_embedding_from_kg(view2)  # items * dims
 
         # DIFF 性能提升 Cui计算的 u_emb i_emb 经过LightGCN
-        if world.KGCL_my_ablated_model == 1:
+        if world.hyper_KGCL_my_ablated_model == 1:
             dropout = False
         else:
             dropout = True
@@ -113,8 +113,8 @@ class KGCL_my(model.AbstractRecModel):
         return sim
 
     def get_kg_views(self):
-        view1 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
-        view2 = utils.drop_edge_random(self.kg_dict, world.KGCL_kg_p_drop, self.num_entities)
+        view1 = utils.drop_edge_random(self.kg_dict, world.hyper_KGCL_kg_p_drop, self.num_entities)
+        view2 = utils.drop_edge_random(self.kg_dict, world.hyper_KGCL_kg_p_drop, self.num_entities)
         return view1, view2
 
     def cal_item_embedding_from_kg(self, kg: dict):
@@ -129,7 +129,7 @@ class KGCL_my(model.AbstractRecModel):
 
     def prepare_each_epoch(self):
         kgv1, kgv2 = self.get_kg_views()
-        if world.KGCL_my_ablated_model == 1:
+        if world.hyper_KGCL_my_ablated_model == 1:
             kgv2 = kgv1.copy()
         stability = self.item_kg_stability(kgv1, kgv2).to(world.device)
         uiv1 = self.get_ui_views_weighted(stability, 1)

@@ -27,7 +27,7 @@ class MCCLK(model.AbstractRecModel):
         self.n_relations = self.kg_dataset.relation_count
 
         # load parameters info
-        self.embedding_size = world.embedding_dim
+        self.embedding_size = world.hyper_embedding_dim
         self.reg_weight = 1e-5
         self.lightgcn_layer = 2
         self.item_agg_layer = 1
@@ -333,6 +333,23 @@ class MCCLK(model.AbstractRecModel):
         z2 = F.normalize(z2)
         return torch.mm(z1, z2.t())
 
+    def getUsersRating(self, users):
+        (
+            item_semantic_emb,
+            user_lightgcn_emb,
+            item_lightgcn_emb,
+            user_gcn_emb,
+            entity_gcn_emb,
+        ) = self.forward()
+
+        all_users = torch.cat((user_gcn_emb, user_lightgcn_emb), dim=-1)
+        all_items = torch.cat((entity_gcn_emb, item_semantic_emb + item_lightgcn_emb), dim=-1)
+
+        users_emb = all_users[users.long()]
+        items_emb = all_items[:self.n_items]
+        rating = self.f(torch.matmul(users_emb, items_emb.t()))
+        return rating
+
 
 class Aggregator(nn.Module):
     def __init__(self, item_only=False, attention=True):
@@ -435,7 +452,7 @@ class GraphConv(nn.Module):
         self.n_hops = 2
         self.node_dropout_rate = 0.5
         self.mess_dropout_rate = 0.1
-        self.topk = max(world.topKs)
+        self.topk = max(world.sys_topKs)
         self.lambda_coeff = 0.5
         self.build_graph_separately = True
         self.device = device

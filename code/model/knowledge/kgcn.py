@@ -25,7 +25,7 @@ class KGCN(model.AbstractRecModel):
         self.n_relations = self.kg_dataset.relation_count
 
         # load parameters info
-        self.embedding_size = world.embedding_dim
+        self.embedding_size = world.hyper_embedding_dim
         # number of iterations when computing entity representation
         self.n_iter = 1
         self.aggregator_class = 'sum'  # which aggregator to use

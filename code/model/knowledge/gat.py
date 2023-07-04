@@ -22,7 +22,7 @@ class GAT(nn.Module):
         # x = F.dropout(item_embs, self.dropout, training=self.training)
         # y = F.dropout(entity_embs, self.dropout, training=self.training)
         x = self.layer.forward_relation(item_embs, entity_embs, w_r, adj)
-        if world.KGCL_my_ablated_model != 1:
+        if world.hyper_KGCL_my_ablated_model != 1:
             x = F.dropout(x, self.dropout, training=self.training)
         return x
 
@@ -62,7 +62,7 @@ class GraphAttentionLayer(nn.Module):
         zero_vec = -9e15 * torch.ones_like(e)
         attention = torch.where(adj > 0, e, zero_vec)
         attention = F.softmax(attention, dim=1)
-        if world.KGCL_my_ablated_model != 1:
+        if world.hyper_KGCL_my_ablated_model != 1:
             attention = F.dropout(attention, self.dropout, training=self.training)  # N, e_num
         # (N, 1, e_num) * (N, e_num, out_features) -> N, out_features
         entity_emb_weighted = torch.bmm(attention.unsqueeze(1), entity_embs).squeeze()

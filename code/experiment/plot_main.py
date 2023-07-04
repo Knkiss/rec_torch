@@ -31,7 +31,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
             y_max, y_min = 0, 1
 
             for model in models:
-                record_file = os.path.join(world.RECORD_PATH, dataset + '_' + model + '.npy')
+                record_file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
                 load_dict: dict = np.load(record_file, allow_pickle=True).item()
                 data[model] = load_dict[model]['result'][metric]
                 performance_table[dataset][metric][model] = data[model][-1]
@@ -62,7 +62,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
             plt.yticks(y_ticks, fontsize=12, weight='bold')
             plt.title(dataset, fontsize=15, weight='bold')
 
-            output_dir = os.path.join(world.PLOT_PATH, 'RQ1')
+            output_dir = os.path.join(world.PATH_PLOT, 'RQ1')
 
             if fig_show:
                 plt.show()
@@ -114,7 +114,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
 def RQ0_calculate_all(datasets, models, debug=False):
     finish = True
     for (dataset, model) in itertools.product(datasets, models):
-        file = os.path.join(world.RECORD_PATH, dataset + '_' + model + '.npy')
+        file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
         if not os.path.exists(file):
             try:
                 if debug:
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'KGCN', 'SGL', 'LightGCN', 'MF']
     save_fig_type = 'png'
 
-    world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
+    world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
     RQ0_calculate_all(dataset_list, model_list)
     RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, fig_show=False,
                     fig_save=False, table_dataset_show=False, table_metrics_show=True, table_latex_show=False)

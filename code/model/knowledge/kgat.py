@@ -35,9 +35,9 @@ class KGAT(model.AbstractRecModel):
         self.matrix_size = torch.Size([self.n_users + self.n_entities, self.n_users + self.n_entities])
 
         # load parameters info
-        self.embedding_size = world.embedding_dim
-        self.kg_embedding_size = world.embedding_dim
-        self.layers = world.KGAT_layers
+        self.embedding_size = world.hyper_embedding_dim
+        self.kg_embedding_size = world.hyper_embedding_dim
+        self.layers = world.hyper_KGAT_layers
         self.aggregator_type = 'bi'
         self.mess_dropout = 0.1
         self.reg_weight = 1e-5

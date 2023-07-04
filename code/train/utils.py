@@ -133,7 +133,7 @@ def mail_on_stop(results):
 def create_adj_mat(training_user, training_item, num_users, num_items, is_subgraph=True):
     n_nodes = num_users + num_items
     if is_subgraph:
-        keep_idx = randint_choice(len(training_user), size=int(len(training_user) * (1-world.SGL_RATIO)), replace=False)
+        keep_idx = randint_choice(len(training_user), size=int(len(training_user) * (1 - world.hyper_SGL_RATIO)), replace=False)
         user_np = np.array(training_user)[keep_idx]
         item_np = np.array(training_item)[keep_idx]
         ratings = np.ones_like(user_np, dtype=np.float32)

@@ -15,7 +15,7 @@ class PCL(model.AbstractRecModel):
         loss = {}
         all_users, all_items = self.calculate_embedding()
         loss[losses.Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
-        loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(all_users, all_items, users, pos) * world.SSM_Regulation
+        loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(all_users, all_items, users, pos) * world.hyper_SSM_Regulation
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos,
                                                              neg)
         return loss

@@ -22,8 +22,8 @@ class KGIN(model.AbstractRecModel):
         self.n_entities = self.kg_dataset.entity_count + self.n_items
         self.n_relations = self.kg_dataset.relation_count
 
-        self.embedding_size = world.embedding_dim
-        self.n_factors = world.KGIN_n
+        self.embedding_size = world.hyper_embedding_dim
+        self.n_factors = world.hyper_KGIN_n
         self.context_hops = 2
         self.node_dropout_rate = 0.5
         self.mess_dropout_rate = 0.0

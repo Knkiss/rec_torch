@@ -96,7 +96,7 @@ def calculate_performance_group(rank_new, i_num, group_num, rank, Ks, test_set, 
 
 
 def record_result(r, r_g, dataset, model, debug):
-    record_dir = world.RECORD_PATH
+    record_dir = world.PATH_RECORD
     record_file = join(record_dir, dataset + '_' + model + '.npy')
 
     if not os.path.exists(record_dir):
@@ -117,10 +117,10 @@ def record_result(r, r_g, dataset, model, debug):
 
 
 def main(dataset, model, debug=False):
-    file_iu = join(world.DATA_PATH, dataset, 'iu.txt')
-    file_test = join(world.DATA_PATH, dataset, 'test.txt')
-    file_train = join(world.DATA_PATH, dataset, 'train.txt')
-    file_predict_list = join(world.OUTPUT_PATH, 'predict', dataset + '_' + model + '.txt')
+    file_iu = join(world.PATH_DATA, dataset, 'iu.txt')
+    file_test = join(world.PATH_DATA, dataset, 'test.txt')
+    file_train = join(world.PATH_DATA, dataset, 'train.txt')
+    file_predict_list = join(world.PATH_OUTPUT, 'predict', dataset + '_' + model + '.txt')
     Ks = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     group_num = 5
 

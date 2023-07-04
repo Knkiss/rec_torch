@@ -28,9 +28,9 @@ def loss_SSM_origin(all_users, all_items, users, pos):
     batch_user_emb = F.normalize(all_users[users.long()], dim=1)
     batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
     pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
-    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.hyper_SSM_Margin
     logits = ttl_score - pos_score
-    clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
+    clogits = torch.logsumexp(logits / world.hyper_SSM_Loss_temp, dim=1)
     loss = torch.sum(clogits)
     return loss
 
@@ -92,12 +92,12 @@ def loss_New_2_1(all_users, all_items, users, pos, neg):
     neg = torch.mul(batch_user_emb, batch_item_emb_neg).sum(dim=1)
     pos_score = torch.nn.functional.softplus(pos - neg).unsqueeze(dim=1)
 
-    ttl_score_neg_all = torch.matmul(batch_user_emb, batch_item_emb.T) * world.SSM_Margin
-    ttl_score_neg = torch.matmul(batch_user_emb, batch_item_emb_neg.T) * world.SSM_Margin
+    ttl_score_neg_all = torch.matmul(batch_user_emb, batch_item_emb.T) * world.hyper_SSM_Margin
+    ttl_score_neg = torch.matmul(batch_user_emb, batch_item_emb_neg.T) * world.hyper_SSM_Margin
     ttl_score = ttl_score_neg_all + ttl_score_neg
 
     logits = ttl_score - pos_score
-    clogits = torch.logsumexp(logits / world.SSM_Loss_temp, dim=1)
+    clogits = torch.logsumexp(logits / world.hyper_SSM_Loss_temp, dim=1)
     loss = torch.sum(clogits)
     return loss
 
@@ -108,15 +108,15 @@ def loss_New_2_2(all_users, all_items, users, pos, neg):
     batch_neg_emb = F.normalize(all_items[neg.long()], dim=1)
 
     pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1)
-    pos_score = torch.exp(pos_score / world.SSM_Loss_temp)
+    pos_score = torch.exp(pos_score / world.hyper_SSM_Loss_temp)
 
     neg_score = torch.sum(torch.multiply(batch_user_emb, batch_neg_emb), dim=1)
-    neg_score = torch.exp(neg_score / world.SSM_Loss_temp)
+    neg_score = torch.exp(neg_score / world.hyper_SSM_Loss_temp)
 
     ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
-    ttl_score = torch.sum(torch.exp(ttl_score / world.SSM_Loss_temp), dim=1)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.hyper_SSM_Loss_temp), dim=1)
 
-    clogits = -(torch.log(pos_score) - torch.log(ttl_score*world.test_ratio + neg_score*world.test_ratio_2))
+    clogits = -(torch.log(pos_score) - torch.log(ttl_score * world.hyper_test_ratio + neg_score * world.hyper_test_ratio_2))
     loss = torch.sum(clogits)
     return loss
 
@@ -127,13 +127,13 @@ def loss_New_2_3(all_users, all_items, users, pos, neg):
     batch_neg_emb = F.normalize(all_items[neg.long()], dim=1)
 
     pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1)
-    pos_score = torch.exp(pos_score / world.SSM_Loss_temp)
+    pos_score = torch.exp(pos_score / world.hyper_SSM_Loss_temp)
 
     neg_score = torch.sum(torch.multiply(batch_user_emb, batch_neg_emb), dim=1)
-    neg_score = torch.exp(neg_score / world.SSM_Loss_temp)
+    neg_score = torch.exp(neg_score / world.hyper_SSM_Loss_temp)
 
     ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
-    ttl_score = torch.sum(torch.exp(ttl_score / world.SSM_Loss_temp), dim=1)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.hyper_SSM_Loss_temp), dim=1)
 
     clogits = -(torch.log(pos_score) - torch.log(ttl_score * neg_score))
     loss = torch.sum(clogits)
@@ -145,7 +145,7 @@ def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
     posEmb0 = all_items_origin(pos.long())
     negEmb0 = all_items_origin(neg.long())
     loss = (1 / 2) * (userEmb0.norm(2).pow(2) + posEmb0.norm(2).pow(2) + negEmb0.norm(2).pow(2)) / float(len(users))
-    return loss * world.decay
+    return loss * world.hyper_decay
 
 
 def loss_info_nce(node_v1, node_v2, batch):
@@ -155,13 +155,13 @@ def loss_info_nce(node_v1, node_v2, batch):
     z_all = node_v2
 
     def f(x):
-        return torch.exp(x / world.ssl_temp)
+        return torch.exp(x / world.hyper_ssl_temp)
 
     all_sim = f(utils.sim(z1, z_all))
     positive_pairs = f(utils.sim(z1, z2))
     negative_pairs = torch.sum(all_sim, 1)
     loss = torch.sum(-torch.log(positive_pairs / negative_pairs))
-    return loss * world.ssl_reg
+    return loss * world.hyper_ssl_reg
 
 
 def loss_SGL(node_v1, node_v2, batch):
@@ -176,11 +176,11 @@ def loss_SGL(node_v1, node_v2, batch):
     pos_score = torch.sum(torch.mul(normalize_emb1, normalize_emb2), dim=1)
     ttl_score = torch.matmul(normalize_emb1, normalize_all_emb2.T)
 
-    pos_score = torch.exp(pos_score / world.ssl_temp)
-    ttl_score = torch.sum(torch.exp(ttl_score / world.ssl_temp), dim=1)
+    pos_score = torch.exp(pos_score / world.hyper_ssl_temp)
+    ttl_score = torch.sum(torch.exp(ttl_score / world.hyper_ssl_temp), dim=1)
 
     loss = -torch.sum(torch.log(pos_score / ttl_score))
-    return loss * world.ssl_reg
+    return loss * world.hyper_ssl_reg
 
 
 def loss_transE(head, tail, relation, h, r, pos_t, neg_t):

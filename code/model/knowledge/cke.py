@@ -21,8 +21,8 @@ class CKE(model.AbstractRecModel):
         self.n_entities = self.kg_dataset.entity_count
         self.n_relations = self.kg_dataset.relation_count
 
-        self.embedding_size = world.embedding_dim
-        self.kg_embedding_size = world.embedding_dim
+        self.embedding_size = world.hyper_embedding_dim
+        self.kg_embedding_size = world.hyper_embedding_dim
         self.reg_weights = [1e-2, 1e-2]
 
         self.user_embedding = torch.nn.Embedding(self.n_users, self.embedding_size)
