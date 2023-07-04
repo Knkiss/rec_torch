@@ -48,10 +48,10 @@ SSM_Margin = 1
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGIN')
+    parser.add_argument('--model', type=str, default='MCCLK')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
-    # KG-based: KGCL、KGIN、KGAT
+    # KG-based: KGCL、KGIN、KGAT、MCCLK
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
     parser.add_argument('--dataset', type=str, default='amazonbook')
@@ -142,11 +142,12 @@ if model == 'KGIN':
 
 
 def print_arguments():
-    print('\n--------------------- Settings ---------------------')
-    a = globals()
+    print('\n----------------------------------- Settings -----------------------------------')
+    a = globals().copy()
+    a = sorted(a.items(), key=lambda d:d[0])
     for i in a:
-        if isinstance(a[i], (float, str, int, list, bool)):
-            if a[i] == 'i' or i.__contains__('__'):
+        if isinstance(i[1], (float, str, int, list, bool)):
+            if i[0] == 'i' or '__' in i[0]:
                 continue
-            print(i + ": " + str(a[i]))
-    print('----------------------------------------------------')
+            print(i[0].ljust(30) + ": " + str(i[1]).ljust(25))
+    print('--------------------------------------------------------------------------------')

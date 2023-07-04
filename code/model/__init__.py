@@ -15,6 +15,7 @@ from model.knowledge.kgin import KGIN
 from model.knowledge.kgat import KGAT
 from model.knowledge.kgcn import KGCN
 from model.knowledge.cke import CKE
+from model.knowledge.mcclk import MCCLK
 
 
 def get_model_by_name(name):

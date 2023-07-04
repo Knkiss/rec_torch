@@ -81,7 +81,10 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 print(i.rjust(15, ' '), end=' ')
             print()
             for i in models:
-                print(i.ljust(15, ' '), end='')
+                if i is models[0]:
+                    print("Ours".ljust(15, ' '), end='')
+                else:
+                    print(i.ljust(15, ' '), end='')
                 for j in metric_list:
                     print(str(round(performance_table[dataset][j][i] * 10000) / 10000).rjust(15, ' '), end=' ')
                 print()
@@ -94,7 +97,10 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 print(i.rjust(15, ' '), end=' ')
             print()
             for i in models:
-                print(i.ljust(15, ' '), end='')
+                if i is models[0]:
+                    print("Ours".ljust(15, ' '), end='')
+                else:
+                    print(i.ljust(15, ' '), end='')
                 for j in datasets:
                     print(str(round(performance_table[j][metric][i] * 10000) / 10000).rjust(15, ' '), end=' ')
                 print()
@@ -128,8 +134,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 
 if __name__ == '__main__':
-    dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
-    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'KGCN', 'SGL', 'LightGCN', 'MF', 'SSM', 'PCL']
+    dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']
+    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'KGCN', 'SGL', 'LightGCN', 'MF']
     save_fig_type = 'png'
 
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
