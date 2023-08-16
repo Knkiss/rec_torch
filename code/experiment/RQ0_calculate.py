@@ -196,7 +196,7 @@ def main(dataset, model, debug=False):
 if __name__ == '__main__':
     dataset = 'lastfm_kg'
     model = 'LightGCN'
-    # main(dataset=dataset, model=model, debug=False)
+    main(dataset=dataset, model=model, debug=False)
 
     record_file = join(world.RECORD_PATH, dataset + '_' + model + '.npy')
     load_dict: dict = np.load(record_file, allow_pickle=True).item()
