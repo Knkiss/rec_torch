@@ -76,12 +76,14 @@ class KGCL_my(model.AbstractRecModel):
         # kg probability of keep
         item_stabilities = torch.exp(item_stabilities)
         kg_weights = (item_stabilities - item_stabilities.min()) / (item_stabilities.max() - item_stabilities.min())
-        kg_weights = torch.exp(kg_weights)
-        kg_weights = kg_weights.where(kg_weights > 0.3, torch.ones_like(kg_weights) * 0.3)
+        # if world.para_1 == 0:
+        #     kg_weights = torch.exp(kg_weights)
+        # kg_weights = kg_weights.where(kg_weights > world.para_2, torch.ones_like(kg_weights) * world.para_2)  # 最小值
 
         # overall probability of keep
-        weights = (1 - world.hyper_KGCL_ui_p_drop) / torch.mean(stab_weight * kg_weights) * (stab_weight * kg_weights)
-        weights = weights.where(weights < 0.95, torch.ones_like(weights) * 0.95)
+        weights = kg_weights
+        # weights = (1 - world.hyper_KGCL_ui_p_drop) / torch.mean(kg_weights) * (kg_weights)
+        weights = weights.where(weights < world.para_3, torch.ones_like(weights) * world.para_3)  # 最大值0.95
 
         item_mask = torch.bernoulli(weights).to(torch.bool)
         g_weighted = self.ui_drop_weighted(item_mask)
@@ -106,8 +108,16 @@ class KGCL_my(model.AbstractRecModel):
         item1_emb = all_items_1[self.ui_dataset.trainItem]  # inters * dims
         item2_emb = all_items_2[self.ui_dataset.trainItem]  # inters * dims
 
-        inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
-        inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
+        self.u1 = all_users_1
+        self.u2 = all_users_2
+        self.i1 = all_items_1
+        self.i2 = all_items_2
+
+        inter_1 = torch.mul(user1_emb, item1_emb)
+        inter_2 = torch.mul(user2_emb, item2_emb)
+
+        # inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
+        # inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
 
         sim = F.cosine_similarity(inter_1, inter_2)  # inters
         return sim
@@ -146,7 +156,11 @@ class KGCL_my(model.AbstractRecModel):
     def calculate_loss(self, users, pos, neg):
         loss = {}
         all_users, all_items = self.calculate_embedding()
-        loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        # loss[Loss.BPR.value] = losses.loss_BPR(all_users, all_items, users, pos, neg)
+        loss[Loss.BPR.value] = losses.loss_BPR_weighted(all_users, all_items,
+                                                        self.u1, self.u2, self.i1, self.i2,
+                                                        users, pos, neg)
+        # loss[Loss.BPR.value] += losses.loss_SSM_origin(all_users, all_items, users, pos)
         loss[Loss.Regulation.value] = losses.loss_regulation(self.embedding_user, self.embedding_item, users, pos, neg)
         users_v1, items_v1 = self.calculate_embedding_graph(self.contrast_views["uiv1"], self.contrast_views["kgv1"])
         users_v2, items_v2 = self.calculate_embedding_graph(self.contrast_views["uiv2"], self.contrast_views["kgv2"])

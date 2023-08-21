@@ -24,6 +24,34 @@ def loss_BPR(all_users, all_items, users, pos, neg):
     return loss
 
 
+def loss_BPR_weighted(all_users, all_items, u1, u2, i1, i2, users, pos, neg):
+    # 使用知识个性化权重的BPR
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+    neg_scores = torch.mul(users_emb, neg_emb).sum(dim=1)
+    scores = -(pos_scores - neg_scores)
+
+    u1_emb = u1[users.long()]
+    u2_emb = u2[users.long()]
+    i1_emb = i1[pos.long()]
+    i2_emb = i2[pos.long()]
+
+    inter_1 = torch.mul(u1_emb, i1_emb)
+    inter_2 = torch.mul(u2_emb, i2_emb)
+    sim = F.cosine_similarity(inter_1, inter_2)  # inters
+    sim = (sim - sim.min()) / (sim.max() - sim.min())
+    # sim = torch.exp(sim)
+    # item_stabilities = t
+    # orch.exp(item_stabilities)
+
+    logits = sim.detach()
+
+    loss = torch.sum(torch.nn.functional.softplus(scores * logits))
+    return loss
+
+
 def loss_SSM_origin(all_users, all_items, users, pos):
     batch_user_emb = F.normalize(all_users[users.long()], dim=1)
     batch_item_emb = F.normalize(all_items[pos.long()], dim=1)

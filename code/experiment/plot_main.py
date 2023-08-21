@@ -134,8 +134,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 
 if __name__ == '__main__':
-    dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'KGAT', 'KGCN', 'SGL', 'LightGCN', 'MF']
+    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    model_list = ['KGCL_my', 'KGCL', 'MCCLK', 'KGIN', 'KGAT', 'KGCN', 'SGL_recbole', 'LightGCN', 'MF']
     save_fig_type = 'png'
 
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
