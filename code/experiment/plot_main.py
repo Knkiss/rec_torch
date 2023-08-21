@@ -16,8 +16,81 @@ warnings.filterwarnings('ignore')
 
 marker_list = ['d', '>', 'o', '*', '^', 'v', '+', 's']
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'r']
-metric_list = ['recall', 'precision', 'ndcg', 'map', 'hit_ratio']
-metric_list_name = ['Recall', 'Precision', 'NDCG', 'MAP', 'HR']
+metric_list = ['recall', 'ndcg']
+metric_list_name = ['Recall', 'NDCG']
+
+
+def RQ3_compare_longTail(datasets, models, form='recall', type='png', debug=False):
+    for dataset in datasets:
+        name_list = []
+        result_metric = {}
+        result_class = {}
+        result_num = {}
+        for model in models:
+            record_file = os.path.join(world.RECORD_PATH, dataset + '_' + model + '.npy')
+            load_dict: dict = np.load(record_file, allow_pickle=True).item()
+            if not name_list:
+                for i in load_dict[model]['ig_label']:
+                    name_list.append('>=' + str(i))
+            result_metric[model] = []
+            for i in range(len(name_list)):
+                result_metric[model].append(load_dict[model]['ig_result'][i]['recall'][-1])
+            result_class[model] = load_dict[model]['ig_class']
+            result_num[model] = load_dict[model]['ig_num']
+            pass
+
+        if form == 'recall':
+            data = result_metric
+            ytitle = 'Recall@20'
+        elif form == 'class':
+            data = result_class
+            ytitle = 'Item Class'
+        elif form == 'num':
+            data = result_num
+            ytitle = 'Item Numbers'
+        else:
+            raise NotImplementedError("RQ3: 不存在的type类型")
+
+        data_all = np.array(list(data.values()))
+        data_min, data_max = np.min(data_all), np.max(data_all)
+
+        x = [0.1, 0.3, 0.5, 0.7, 0.9]
+        width = 0.04
+        width1 = 0.05
+        ax = plt.subplot(111)
+        plt.bar(x, data[models[-1]][::-1], width=width, label=models[-1], fc='#70c1b3', edgecolor='k')
+        for i in range(len(x)):
+            x[i] += width1
+        plt.bar(x, data[models[-2]][::-1], width=width, label=models[-2], tick_label=name_list, fc='#2a9d8f', edgecolor='k')
+        for i in range(len(x)):
+            x[i] += width1
+        plt.bar(x, data[models[0]][::-1], width=width, label=models[0], fc='#1a535c', edgecolor='k')
+        plt.yticks(fontsize=14, weight='bold')
+        plt.xticks(size=14, weight='bold')
+        # 标题
+        plt.ylabel(ytitle, fontsize=18, weight='bold')  # Y轴标签
+        plt.xlabel("Item Group", fontsize=18, weight='bold')  # Y轴标签
+        plt.legend(fontsize=14, loc='upper right', ncol=1)
+        ax.grid(axis='y', linestyle='--')
+        ax.set_axisbelow(True)
+
+        if data_max/data_min > 10:
+            t = math.log10(data_min)
+            scale = math.floor(t)
+            plt.ylim([pow(10, scale), data_max*2])
+            plt.yscale('log')
+
+        plt.title(dataset, fontsize=20, weight='bold')
+
+        output_dir = os.path.join(world.PLOT_PATH, 'RQ3')
+        if debug:
+            plt.show()
+        else:
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            plt.savefig(os.path.join(output_dir, dataset + '_itemGroup_' + form + '.' + type), dpi=900, bbox_inches='tight')
+            plt.close()
+    print("RQ3：所有数据集长尾物品分组比较绘制完成")
 
 
 def RQ1_compare_all(datasets, models, x_ticks, type='png', debug=False):
@@ -109,11 +182,14 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 
 if __name__ == '__main__':
-    dataset_list = ['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
-    model_list = ['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF']
-    debug = True
-    save_fig_type = 'png'
-
+    dataset_list = ['movielens1m_kg']
+    model_list = ['KGCL_my', 'KGCL', 'LightGCN']
+    debug = False
+    save_fig_type = 'eps'
     world.PLOT_PATH = os.path.join(world.PLOT_PATH, model_list[0])
+
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)
+    # RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)
+    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='class', type=save_fig_type, debug=debug)
+    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='num', type=save_fig_type, debug=debug)
+    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='recall', type=save_fig_type, debug=debug)
