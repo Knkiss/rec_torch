@@ -92,7 +92,13 @@ def calculate_performance_group(rank_new, i_num, group_num, rank, Ks, test_set, 
                 result_g[g]['ndcg'] += re['ndcg'] / n_users
                 result_g[g]['hit_ratio'] += re['hit_ratio'] / n_users
                 result_g[g]['map'] += re['map'] / n_users
-    return result_g
+
+    g_interactions_limit = []
+    for g in range(group_num):
+        g_interactions_limit.append(i_num[sorted_id[ends[g] - 1]])
+
+    return [result_g, g_class, g_num, g_interactions_limit]
+    # 每组的性能指标、每组的交互物品种类数量、每组的交互数量、横轴标签：每个物品分组的最小交互个数
 
 
 def record_result(r, r_g, dataset, model, debug):
@@ -106,7 +112,8 @@ def record_result(r, r_g, dataset, model, debug):
 
     load_dict: dict = np.load(record_file, allow_pickle=True).item()
     if model not in load_dict.keys():
-        load_dict[model] = {'result': r, 'result_g': r_g}
+        load_dict[model] = {'result': r,
+                            'ig_result': r_g[0], 'ig_class': r_g[1], 'ig_num': r_g[2], 'ig_label': r_g[3]}
         np.save(record_file, load_dict)
         print("结果已保存到" + record_file)
     else:
@@ -187,4 +194,10 @@ def main(dataset, model, debug=False):
 
 
 if __name__ == '__main__':
-    main(dataset='lastfm_kg', model='KGCL_my', debug=False)
+    dataset = 'lastfm_kg'
+    model = 'LightGCN'
+    main(dataset=dataset, model=model, debug=False)
+
+    record_file = join(world.RECORD_PATH, dataset + '_' + model + '.npy')
+    load_dict: dict = np.load(record_file, allow_pickle=True).item()
+    pass
