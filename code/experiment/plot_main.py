@@ -7,6 +7,8 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
+from decimal import Decimal
 
 import RQ0_calculate
 import world
@@ -14,8 +16,9 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-marker_list = ['d', '>', 'o', '*', '^', 'v', '+', 's']
-color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'r']
+marker_list = [m for m, func in Line2D.markers.items()
+               if func != 'nothing' and m not in Line2D.filled_markers] + list(Line2D.filled_markers)
+color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
 metric_list = ['recall', 'ndcg']
 metric_list_name = ['Recall', 'NDCG']
 
@@ -180,8 +183,62 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
             print()
 
     if table_latex_show:
-        # TODO latex文章内表格形式
-        pass
+        # 统计数据最大值与次大值，并计算提升值
+        for dataset in datasets:
+            for metric in metric_list:
+                data = {}
+                for model in models:
+                    data[model] = performance_table[dataset][metric][model]
+                data = sorted(data.items(),  key=lambda d: d[1], reverse=True)
+                performance_table[dataset][metric]['max'] = data[0][0]
+                performance_table[dataset][metric]['second'] = data[1][0]
+                if data[0][0] == models[0]:
+                    performance_table[dataset][metric]['improve'] = (data[0][1] - data[1][1]) / data[1][1]
+                else:
+                    performance_table[dataset][metric]['improve'] = -1
+
+        # 打印数据及抬头
+        for i in datasets:
+            if i != datasets[-1]:
+                fenge = 'c|'
+            else:
+                fenge = 'c'
+            print(" & \\multicolumn{" + str(len(metric_list)) + '}{' + fenge + '}{' + i + '}', end='')
+        print(' \\\\')
+
+        # 打印指标抬头
+        for i in range(len(datasets)):
+            for j in range(len(metric_list)):
+                print(' & ' + metric_list_name[j], end='')
+        print(' \\\\ \\hline')
+
+        # 打印模型性能
+        for model in models[::-1]:
+            print(model, end='')
+            for dataset in datasets:
+                for metric in metric_list:
+                    res_origin = performance_table[dataset][metric][model]
+                    res_process = Decimal(res_origin).quantize(Decimal("0.0001"), rounding="ROUND_HALF_UP")
+                    if model == performance_table[dataset][metric]['max']:
+                        print(' & \\textbf{' + str(res_process), end='}')
+                    elif model == performance_table[dataset][metric]['second']:
+                        print(' & \\underline{' + str(res_process), end='}')
+                    else:
+                        print(' & ' + str(res_process), end='')
+            print(' \\\\', end='')
+            if model in models[0:2]:
+                print(' \\hline')
+            else:
+                print('')
+
+        # 打印模型性能增长幅度
+        print("Improve", end='')
+        for dataset in datasets:
+            for metric in metric_list:
+                imp_origin = performance_table[dataset][metric]['improve']
+                imp_process = float(Decimal(imp_origin).quantize(Decimal("0.0001"), rounding="ROUND_HALF_UP")) * 100
+                print(' & ' + str(imp_process) + "\\%", end='')
+        print(' \\\\')
 
 
 def RQ0_calculate_all(datasets, models, debug=False):
@@ -208,7 +265,7 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGCL_my', 'KGCL', 'MCCLK', 'KGIN', 'KGAT', 'KGCN', 'SGL_recbole', 'LightGCN', 'MF']
+    model_list = ['KGCL_my', 'KGCL', 'SGL_recbole', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
     save_fig_type = 'png'
 
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
@@ -216,8 +273,8 @@ if __name__ == '__main__':
 
     RQ0_calculate_all(dataset_list, model_list)
     RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, fig_show=False,
-                    fig_save=False, table_dataset_show=False, table_metrics_show=True, table_latex_show=False)
+                    fig_save=False, table_dataset_show=False, table_metrics_show=False, table_latex_show=True)
     # RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)
-    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='class', type=save_fig_type, debug=debug)
-    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='num', type=save_fig_type, debug=debug)
-    RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='recall', type=save_fig_type, debug=debug)
+    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='class', type=save_fig_type, debug=debug)
+    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='num', type=save_fig_type, debug=debug)
+    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='recall', type=save_fig_type, debug=debug)
