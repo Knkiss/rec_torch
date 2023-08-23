@@ -21,6 +21,7 @@ marker_list = [m for m, func in Line2D.markers.items()
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
 metric_list = ['recall', 'ndcg']
 metric_list_name = ['Recall', 'NDCG']
+dataset_name = {'amazonbook': 'AmazonBook', 'movielens1m_kg': 'Movielens-1M', 'lastfm_kg': 'LastFM'}
 
 
 def RQ3_compare_longTail(datasets, models, form='recall', type='png', debug=False):
@@ -114,8 +115,8 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 y_max = max(y_max, max(data[model]))
                 y_min = min(y_min, min(data[model]))
 
-            y_max = math.ceil(y_max * 1000) / 1000
-            y_min = math.floor(y_min * 1000) / 1000
+            y_max = math.ceil((y_max + y_max/100) * 1000) / 1000
+            y_min = math.floor((y_min - y_min/100) * 1000) / 1000
             y_step = math.ceil((y_max - y_min) / 0.006) / 1000
             y_ticks = [math.ceil((y * y_step + y_min) * 1000) / 1000 for y in range(7)]
 
@@ -136,7 +137,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
             plt.xlabel('Top-N', fontsize=13, weight='bold')
             plt.ylabel(metric_list_name[metric_list.index(metric)] + '@N', fontsize=13, weight='bold')
             plt.yticks(y_ticks, fontsize=12, weight='bold')
-            plt.title(dataset, fontsize=15, weight='bold')
+            plt.title(dataset_name[dataset], fontsize=15, weight='bold')
 
             output_dir = os.path.join(world.PATH_PLOT, 'RQ1')
 
@@ -265,15 +266,15 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGCL_my', 'KGCL', 'SGL_recbole', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
-    save_fig_type = 'png'
+    model_list = ['Ours', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
+    save_fig_type = 'eps'  # png 或 eps
 
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
     debug = False
 
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, fig_show=False,
-                    fig_save=False, table_dataset_show=False, table_metrics_show=False, table_latex_show=True)
+    RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, fig_show=True,
+                    fig_save=False, table_dataset_show=False, table_metrics_show=False, table_latex_show=False)
     # RQ1_compare_all(dataset_list, model_list, x_ticks=range(2, 21, 2), type=save_fig_type, debug=debug)
     # RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='class', type=save_fig_type, debug=debug)
     # RQ3_compare_longTail(datasets=dataset_list, models=model_list, form='num', type=save_fig_type, debug=debug)
