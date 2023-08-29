@@ -21,7 +21,99 @@ marker_list = [m for m, func in Line2D.markers.items()
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
 metric_list = ['recall', 'ndcg']
 metric_list_name = ['Recall', 'NDCG']
+metric_name = {'recall': 'Recall', 'ndcg': 'NDCG'}
 dataset_name = {'amazonbook': 'AmazonBook', 'movielens1m_kg': 'Movielens-1M', 'lastfm_kg': 'LastFM'}
+
+
+def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=False,
+                         fig_metric=False, fig_num=False, fig_class=False, metric='ndcg'):
+    forms = []
+    if fig_metric:
+        forms.append(metric)
+    if fig_num:
+        forms.append('num')
+    if fig_class:
+        forms.append('class')
+
+    for dataset in datasets:
+        name_list = []
+        result_metric = {}
+        result_class = {}
+        result_num = {}
+        for model in models:
+            record_file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
+            load_dict: dict = np.load(record_file, allow_pickle=True).item()
+            if not name_list:
+                for i in load_dict[model]['ug_label']:
+                    name_list.append('>=' + str(i))
+            result_metric[model] = []
+            for i in range(len(name_list)):
+                result_metric[model].append(load_dict[model]['ug_result'][i][metric][-1])
+            result_class[model] = load_dict[model]['ug_class']
+            result_num[model] = load_dict[model]['ug_num']
+
+        for form in forms:
+            if form == metric:
+                data = result_metric
+                ytitle = metric_name[metric] + '@20'
+            elif form == 'class':
+                data = result_class
+                ytitle = 'Item Class'
+            elif form == 'num':
+                data = result_num
+                ytitle = 'Item Numbers'
+            else:
+                raise NotImplementedError("RQ3: 不存在的type类型")
+
+            data_all = np.array(list(data.values()))
+            data_min, data_max = np.min(data_all), np.max(data_all)
+
+            x = [0.1, 0.3, 0.5, 0.7, 0.9]
+            width = 0.04
+            width1 = 0.05
+            ax = plt.subplot(111)
+            plt.bar(x, data[models[-1]], width=width, label=models[-1], fc='#e2ded3', edgecolor='k')
+            for i in range(len(x)):
+                x[i] += width1
+            plt.bar(x, data[models[-2]], width=width, label=models[-2],
+                    tick_label=name_list, fc='#857671', edgecolor='k')
+            for i in range(len(x)):
+                x[i] += width1
+            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#4e413b', edgecolor='k')
+            plt.yticks(fontsize=14, weight='bold')
+            plt.xticks(size=14, weight='bold')
+            # 标题
+            plt.ylabel(ytitle, fontsize=18, weight='bold')  # Y轴标签
+            plt.xlabel("User Group", fontsize=18, weight='bold')  # Y轴标签
+
+            if data[models[0]][0] > data[models[0]][-1]:
+                plt.legend(fontsize=14, loc='upper right', ncol=1)
+            else:
+                plt.legend(fontsize=14, loc='upper left', ncol=1)
+            ax.grid(axis='y', linestyle='--')
+            ax.set_axisbelow(True)
+
+            plt.ylim([data_min * 0.9, data_max * 1.1])
+
+            # if data_max/data_min > 10:
+            #     t = math.log10(data_min)
+            #     scale = math.floor(t)
+            #     plt.ylim([pow(10, scale), data_max*2])
+                # plt.yscale('log')
+
+            plt.title(dataset_name[dataset], fontsize=20, weight='bold')
+
+            output_dir = os.path.join(world.PATH_PLOT, 'RQ4')
+            if fig_save:
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                plt.savefig(os.path.join(output_dir, dataset + '_userGroup_' + form + '.' + type),
+                            dpi=900, bbox_inches='tight')
+                plt.close()
+            elif fig_show:
+                plt.show()
+    if fig_save or fig_show:
+        print("RQ4：所有数据集用户稀疏度分组比较绘制完成")
 
 
 def RQ3_compare_longTail(datasets, models, type='png', fig_show=False, fig_save=False,
@@ -106,7 +198,8 @@ def RQ3_compare_longTail(datasets, models, type='png', fig_show=False, fig_save=
                     os.makedirs(output_dir)
                 plt.savefig(os.path.join(output_dir, dataset + '_itemGroup_' + form + '.' + type),
                             dpi=900, bbox_inches='tight')
-            if fig_show:
+                plt.close()
+            elif fig_show:
                 plt.show()
     if fig_save or fig_show:
         print("RQ3：所有数据集长尾物品分组比较绘制完成")
@@ -281,15 +374,20 @@ def RQ0_calculate_all(datasets, models, debug=False):
 
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['Ours', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
-    save_fig_type = 'eps'  # png 或 eps
+    model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
+    save_fig_type = 'png'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
     RQ0_calculate_all(dataset_list, model_list)
     RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
-                    fig_show=True, fig_save=False,
+                    fig_show=False, fig_save=True,
                     table_dataset_show=False, table_metrics_show=False, table_latex_show=False)
 
-    model_list = ['Ours', 'KGCL', 'SGL']
+    model_list = ['KGAG', 'KGCL', 'SGL']
     RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
-                         fig_show=True, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
+                         fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
+
+    RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
+                         fig_show=False, fig_save=True, metric='ndcg',
+                         fig_metric=True, fig_num=False, fig_class=False)
+
