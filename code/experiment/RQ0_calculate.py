@@ -131,7 +131,7 @@ def main(dataset, model, debug=False):
     Ks = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     group_num = 5
 
-    i_num = []
+    i_num = []  # 物品交互数量统计
     K = max(Ks)
 
     train_set, test_set = [], []
@@ -166,7 +166,7 @@ def main(dataset, model, debug=False):
                     l2.remove(' ')
                 rank = list(map(int, l2))
 
-    rank_new = []
+    rank_new = []  # 用户TOPK预测结果统计
     for i in range(int(len(rank) / K)):
         rank_new.append(rank[i * K:(i + 1) * K])
 
@@ -194,10 +194,10 @@ def main(dataset, model, debug=False):
 
 
 if __name__ == '__main__':
-    dataset = 'lastfm_kg'
+    dataset = 'movielens1m_kg'
     model = 'LightGCN'
-    main(dataset=dataset, model=model, debug=False)
+    # main(dataset=dataset, model=model, debug=False)
 
-    record_file = join(world.RECORD_PATH, dataset + '_' + model + '.npy')
+    record_file = join(world.PATH_RECORD, dataset + '_' + model + '.npy')
     load_dict: dict = np.load(record_file, allow_pickle=True).item()
     pass
