@@ -1,0 +1,25 @@
+{'Precision': array([0.06948441, 0.04766187]), 'NDCG': array([0.20562703, 0.23891299]), 'Recall': array([0.28080773, 0.38194373]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.01}
+{'Precision': array([0.06109113, 0.04223621]), 'NDCG': array([0.18241481, 0.21223309]), 'Recall': array([0.2490077 , 0.33996089]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.05}
+{'Precision': array([0.066247  , 0.04538369]), 'NDCG': array([0.19807846, 0.22928196]), 'Recall': array([0.2668401 , 0.36192546]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.1}
+{'Precision': array([0.04214628, 0.02916667]), 'NDCG': array([0.12366007, 0.14525522]), 'Recall': array([0.17170549, 0.23869214]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.2}
+{'Precision': array([0.03854916, 0.02646882]), 'NDCG': array([0.11388214, 0.132626  ]), 'Recall': array([0.15891144, 0.21714486]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.5}
+{'Precision': array([0.07014388, 0.04778177]), 'NDCG': array([0.20513341, 0.23787644]), 'Recall': array([0.28266863, 0.382863  ]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.01}
+{'Precision': array([0.06996403, 0.04754197]), 'NDCG': array([0.21007838, 0.24270718]), 'Recall': array([0.28305903, 0.38253968]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.05}
+{'Precision': array([0.06990408, 0.04667266]), 'NDCG': array([0.20882565, 0.24008519]), 'Recall': array([0.27916952, 0.37616478]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.1}
+{'Precision': array([0.06570743, 0.04394484]), 'NDCG': array([0.20099227, 0.22986051]), 'Recall': array([0.26263323, 0.35212758]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.2}
+{'Precision': array([0.04466427, 0.03009592]), 'NDCG': array([0.13292587, 0.1531542 ]), 'Recall': array([0.18232557, 0.24445967]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.5}
+{'Precision': array([0.07008393, 0.04703237]), 'NDCG': array([0.20550225, 0.2363477 ]), 'Recall': array([0.2827312 , 0.37743567]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.01}
+{'Precision': array([0.07128297, 0.04808153]), 'NDCG': array([0.2139102 , 0.24561148]), 'Recall': array([0.29104407, 0.3859962 ]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.05}
+{'Precision': array([0.07134293, 0.04814149]), 'NDCG': array([0.21387001, 0.2461583 ]), 'Recall': array([0.28849872, 0.38693117]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.1}
+{'Precision': array([0.06960432, 0.04652278]), 'NDCG': array([0.21052959, 0.24174236]), 'Recall': array([0.27773162, 0.37420492]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.2}
+{'Precision': array([0.05125899, 0.03417266]), 'NDCG': array([0.15309869, 0.1751322 ]), 'Recall': array([0.20902992, 0.27707501]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.5}
+{'Precision': array([0.06990408, 0.04709233]), 'NDCG': array([0.20086335, 0.23228082]), 'Recall': array([0.27991321, 0.3761291 ]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.01}
+{'Precision': array([0.07002398, 0.04778177]), 'NDCG': array([0.20751156, 0.23978238]), 'Recall': array([0.28513879, 0.38230344]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.05}
+{'Precision': array([0.07080336, 0.04817146]), 'NDCG': array([0.21342251, 0.24606676]), 'Recall': array([0.28797581, 0.38703537]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.1}
+{'Precision': array([0.07176259, 0.0477518 ]), 'NDCG': array([0.21677984, 0.24739849]), 'Recall': array([0.29056707, 0.38384221]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.2}
+{'Precision': array([0.05569544, 0.03770983]), 'NDCG': array([0.17156341, 0.19708686]), 'Recall': array([0.22760649, 0.30607038]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.5}
+{'Precision': array([0.06414868, 0.04481415]), 'NDCG': array([0.18500685, 0.21878281]), 'Recall': array([0.25585127, 0.35971509]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.01}
+{'Precision': array([0.06822542, 0.04691247]), 'NDCG': array([0.20074627, 0.23381481]), 'Recall': array([0.27552862, 0.37583861]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.05}
+{'Precision': array([0.07140288, 0.04802158]), 'NDCG': array([0.21306105, 0.24468437]), 'Recall': array([0.29040529, 0.38515116]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.1}
+{'Precision': array([0.07170264, 0.04805156]), 'NDCG': array([0.2144697 , 0.24636289]), 'Recall': array([0.28951791, 0.38701301]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.2}
+{'Precision': array([0.06864508, 0.04640288]), 'NDCG': array([0.20777546, 0.23910717]), 'Recall': array([0.27739047, 0.37275275]), 'dataset': 'lastfm_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.5}

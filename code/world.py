@@ -36,6 +36,7 @@ sys_epoch = 0
 sys_max_epochs = 1000
 sys_topKs = [10, 20]  # [2,4,6,8,10,12,14,16,18,20]
 sys_root_model = False
+sys_ablation_name = ''
 
 
 # region 命令行参数读取

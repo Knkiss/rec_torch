@@ -4,6 +4,7 @@
 import itertools
 import math
 import os
+from os.path import join
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,7 +100,7 @@ def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=
             #     t = math.log10(data_min)
             #     scale = math.floor(t)
             #     plt.ylim([pow(10, scale), data_max*2])
-                # plt.yscale('log')
+            # plt.yscale('log')
 
             plt.title(dataset_name[dataset], fontsize=20, weight='bold')
 
@@ -223,8 +224,8 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 y_max = max(y_max, max(data[model]))
                 y_min = min(y_min, min(data[model]))
 
-            y_max = math.ceil((y_max + y_max/100) * 1000) / 1000
-            y_min = math.floor((y_min - y_min/100) * 1000) / 1000
+            y_max = math.ceil((y_max + y_max / 100) * 1000) / 1000
+            y_min = math.floor((y_min - y_min / 100) * 1000) / 1000
             y_step = math.ceil((y_max - y_min) / 0.006) / 1000
             y_ticks = [math.ceil((y * y_step + y_min) * 1000) / 1000 for y in range(7)]
 
@@ -298,7 +299,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 data = {}
                 for model in models:
                     data[model] = performance_table[dataset][metric][model]
-                data = sorted(data.items(),  key=lambda d: d[1], reverse=True)
+                data = sorted(data.items(), key=lambda d: d[1], reverse=True)
                 performance_table[dataset][metric]['max'] = data[0][0]
                 performance_table[dataset][metric]['second'] = data[1][0]
                 if data[0][0] == models[0]:
@@ -372,12 +373,82 @@ def RQ0_calculate_all(datasets, models, debug=False):
         raise FileNotFoundError("RQ0：数据处理异常，请检查失败原因后重新运行")
 
 
+def RQ0_datasets_statistics(datasets):
+    for dataset in datasets:
+        file_train = join(world.PATH_DATA, dataset, 'train.txt')
+        file_test = join(world.PATH_DATA, dataset, 'test.txt')
+        file_kg = join(world.PATH_DATA, dataset, 'kg.txt')
+
+        ui_users = []
+        ui_inters = []
+
+        with open(file_train) as f:
+            for line in f.readlines():
+                if len(line) > 0:
+                    line = line.strip('\n').split(' ')
+                    if '' in line:
+                        line.remove('')
+                    ui_users.append(line[0])
+                    ui_inters.extend(line[1:])
+
+        with open(file_test) as f:
+            for line in f.readlines():
+                if len(line) > 0:
+                    line = line.strip('\n').split(' ')
+                    if '' in line:
+                        line.remove('')
+                    ui_users.append(line[0])
+                    ui_inters.extend(line[1:])
+
+        ui_users_size = len(set(ui_users))
+        ui_items_size = len(set(ui_inters))
+        ui_interactions_size = len(ui_inters)
+        ui_density_size = ui_interactions_size / (ui_users_size * ui_items_size) * 100
+
+        print('----------------------------------------------------')
+        print('dataset: ',  dataset)
+        print('ui_users_size ', ui_users_size)
+        print('ui_items_size ', ui_items_size)
+        print('ui_interactions_size ', ui_interactions_size)
+        print('ui_density_size ', ui_density_size, '%')
+        try:
+            kg_heads = []
+            kg_relations = []
+            kg_tails = []
+
+            with open(file_kg) as f:
+                for line in f.readlines():
+                    if len(line) > 0:
+                        line = line.strip('\n').split(' ')
+                        if '' in line:
+                            line.remove('')
+
+                        kg_heads.append(line[0])
+                        kg_relations.append(line[1])
+                        kg_tails.append(line[2])
+
+            kg_entities_size = len(set(kg_heads)) + len(set(kg_tails))
+            kg_relations_size = len(set(kg_relations))
+            kg_triples_size = len(kg_heads)
+            ui_kg_scale = kg_triples_size / ui_interactions_size * 100
+
+            print('----------')
+            print('kg_entities_size ', kg_entities_size)
+            print('kg_relations_size ', kg_relations_size)
+            print('kg_triples_size ', kg_triples_size)
+            print('kg_ui_scale ', ui_kg_scale, '%')
+
+        finally:
+            f.close()
+
+
 if __name__ == '__main__':
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
     model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
-    save_fig_type = 'png'  # png 或 eps
+    save_fig_type = 'eps'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
+    RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
     RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
                     fig_show=False, fig_save=True,
@@ -390,4 +461,3 @@ if __name__ == '__main__':
     RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
                          fig_show=False, fig_save=True, metric='ndcg',
                          fig_metric=True, fig_num=False, fig_class=False)
-

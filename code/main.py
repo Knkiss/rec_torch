@@ -266,7 +266,8 @@ class Manager:
         if world.predict_list_enable:
             if not os.path.exists(world.PATH_PREDICT):
                 os.makedirs(world.PATH_PREDICT)
-            with open(world.PATH_PREDICT + '/' + world.dataset + '_' + world.model + '.txt', mode='w') as f:
+            with open(world.PATH_PREDICT + '/' + world.dataset + '_' +
+                      world.model + world.sys_ablation_name + '.txt', mode='w') as f:
                 for i in self.predict:
                     for j in i.numpy():
                         for k in j:
@@ -316,34 +317,19 @@ class Search:
     @staticmethod
     def set_parameters(parameters):
         para_dict = {}
-        # 模型与数据集切换测试
-        # world.model = parameters[0]
-        # para_dict['model'] = parameters[0]
         world.dataset = parameters[0]
         para_dict['dataset'] = parameters[0]
-        # 参数搜索
-        # world.hyper_ssl_reg = parameters[0]
-        # para_dict['ssl_reg'] = parameters[0]
-        # world.test_ratio_2 = parameters[0]
-        # para_dict['test_ratio_2'] = parameters[0]
-        # world.test_ratio = parameters[1]
-        # para_dict['test_ratio'] = parameters[1]
-        # world.SSM_Loss_temp = parameters[0]
-        # para_dict['SSM_Loss_temp'] = parameters[0]
+        world.hyper_ssl_temp = parameters[1]
+        para_dict['hyper_ssl_temp'] = parameters[1]
+        world.hyper_ssl_reg = parameters[2]
+        para_dict['hyper_ssl_reg'] = parameters[2]
         return para_dict
 
     # Need Change
     def set_parameters_table(self):
-        # 模型与数据集切换测试
-        # self.parameter_table = [['KGCL_my', 'KGCL', 'KGIN', 'SGL', 'LightGCN', 'MF'],
-        #                         ['amazonbook', 'lastfm_wxkg', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
-        # self.parameter_table = [[0.1, 0.2, 0.3]]
-        self.parameter_table = [['amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg']]
-        # 参数搜索
-        # self.parameter_table = [[0.01, 0.1, 1, 10, 100, 1000], [0.01, 0.1, 1, 10, 100, 1000]]
-        # self.parameter_table = [[]]
-        # for i in range(0,5):
-        #     self.parameter_table[0].append(0.1 * (i+1))
+        self.parameter_table = [['lastfm_kg'],
+                                [0.1, 0.15, 0.2, 0.25, 0.3],
+                                [0.01, 0.05, 0.1, 0.2, 0.5]]
 
 
 class Timer:
