@@ -129,8 +129,7 @@ def kg_resort(i_n, input_file, output_file):
 
 
 if __name__ == '__main__':
-    dataset = 'movielens1m_kg'
-    item_num = 2346
+    dataset = 'citeulikea_GJJ'
 
     file_train = dataset + '/train.txt'
     file_test = dataset + '/test.txt'
@@ -140,6 +139,7 @@ if __name__ == '__main__':
 
     # train_test_split('ratings_final', test_ratio=0.2)
     # kg_split('kg_final.txt')
-    # ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
+    ui_to_iu(input_train=file_train, input_test=file_test, output_iu=file_iu)
 
-    kg_resort(item_num, file_kg, file_kg)
+    # item_num = 2346
+    # kg_resort(item_num, file_kg, file_kg)

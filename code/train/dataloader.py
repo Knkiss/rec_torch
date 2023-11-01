@@ -45,6 +45,8 @@ class UIDataset(Dataset):
             for line in f.readlines():
                 if len(line) > 0:
                     line = line.strip('\n').split(' ')
+                    if len(line) == 1:
+                        continue
                     items = [int(i) for i in line[1:]]
                     uid = int(line[0])
                     trainUniqueUsers.append(uid)
