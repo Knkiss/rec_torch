@@ -17,6 +17,7 @@ from model.knowledge.kgcn import KGCN
 from model.knowledge.cke import CKE
 from model.knowledge.mcclk import MCCLK
 from model.general.sgl_recbole import SGL_recbole
+from model.GJJ.CGCL import CGCL
 
 
 def get_model_by_name(name):

@@ -20,10 +20,11 @@ warnings.filterwarnings('ignore')
 marker_list = [m for m, func in Line2D.markers.items()
                if func != 'nothing' and m not in Line2D.filled_markers] + list(Line2D.filled_markers)
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
-metric_list = ['recall', 'ndcg']
-metric_list_name = ['Recall', 'NDCG']
+metric_list = ['recall', 'ndcg', 'hit_ratio', 'map']
+metric_list_name = ['Recall', 'NDCG', 'HR', 'MAP']
 metric_name = {'recall': 'Recall', 'ndcg': 'NDCG'}
-dataset_name = {'amazonbook': 'AmazonBook', 'movielens1m_kg': 'Movielens-1M', 'lastfm_kg': 'LastFM'}
+dataset_name = {'amazonbook': 'AmazonBook', 'movielens1m_kg': 'Movielens-1M', 'lastfm_kg': 'LastFM',
+                'citeulikea_GJJ': 'CiteULikeA-GJJ'}
 
 
 def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=False,
@@ -220,7 +221,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 record_file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
                 load_dict: dict = np.load(record_file, allow_pickle=True).item()
                 data[model] = load_dict[model]['result'][metric]
-                performance_table[dataset][metric][model] = data[model][-1]
+                performance_table[dataset][metric][model] = data[model][4]
                 y_max = max(y_max, max(data[model]))
                 y_min = min(y_min, min(data[model]))
 
@@ -443,21 +444,21 @@ def RQ0_datasets_statistics(datasets):
 
 
 if __name__ == '__main__':
-    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
-    save_fig_type = 'eps'  # png 或 eps
+    dataset_list = ['citeulikea_GJJ']
+    model_list = ['CGCL', 'LightGCN', 'MF']
+    save_fig_type = 'png'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
-    RQ0_datasets_statistics(datasets=dataset_list)
+    # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
     RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
-                    fig_show=False, fig_save=True,
-                    table_dataset_show=False, table_metrics_show=False, table_latex_show=False)
+                    fig_show=False, fig_save=False,
+                    table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
 
-    model_list = ['KGAG', 'KGCL', 'SGL']
-    RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
-                         fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
-
-    RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
-                         fig_show=False, fig_save=True, metric='ndcg',
-                         fig_metric=True, fig_num=False, fig_class=False)
+    # model_list = ['KGAG', 'KGCL', 'SGL']
+    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
+    #                      fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
+    #
+    # RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
+    #                      fig_show=False, fig_save=True, metric='ndcg',
+    #                      fig_metric=True, fig_num=False, fig_class=False)

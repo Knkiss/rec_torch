@@ -19,7 +19,7 @@ class LightGCN(model.AbstractRecModel):
                                                                     pos, neg)
         return loss
 
-    def forward(self, all_users, all_items, graph, dropout=True, drop_prob=0.2, n_layers=3):
+    def forward(self, all_users, all_items, graph, dropout=True, drop_prob=0.2, n_layers=3, output_one_layer=False):
         num_users = all_users.shape[0]
         num_items = all_items.shape[0]
         all_emb = torch.cat([all_users, all_items])
@@ -31,6 +31,10 @@ class LightGCN(model.AbstractRecModel):
         for layer in range(n_layers):
             all_emb = torch.sparse.mm(g_dropped, all_emb)
             embs.append(all_emb)
-        embs = torch.stack(embs, dim=1)
-        all_emb = torch.mean(embs, dim=1)
-        return torch.split(all_emb, [num_users, num_items])
+
+        if not output_one_layer:
+            embs = torch.stack(embs, dim=1)
+            all_emb = torch.mean(embs, dim=1)
+            return torch.split(all_emb, [num_users, num_items])
+        else:
+            return torch.split(embs[-1], [num_users, num_items])

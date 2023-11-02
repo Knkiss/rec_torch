@@ -42,15 +42,16 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGCL_my')
+    parser.add_argument('--model', type=str, default='CGCL')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL、KGIN、KGAT、MCCLK
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL
-    parser.add_argument('--dataset', type=str, default='lastfm_kg')
+    parser.add_argument('--dataset', type=str, default='citeulikea_GJJ')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
+    # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
 
     # PCL文章使用：'amazonbook', 'lastfm'
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
@@ -86,7 +87,7 @@ device = torch.device('cuda' if GPU else "cpu")
 # endregion
 
 # region 功能设置
-PATH_ROOT = "F:/Code/MINE/rec_torch"
+PATH_ROOT = "D:/Codes/rec_torch"
 if platform.system().lower() == 'linux':
     PATH_ROOT = "/home/byl/PycharmProjects/rec_torch"
 PATH_CODE = join(PATH_ROOT, 'code')

@@ -126,7 +126,7 @@ class Manager:
         self.timer.start('time_train_per_epoch')
         self.rec_model.train()
         batch_size = world.train_batch_size
-        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+        UILoader = DataLoader(self.rec_model.ui_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         aver_loss = {Loss.BPR.value: 0.}
         for key in Loss:
             aver_loss[key.value] = 0.
