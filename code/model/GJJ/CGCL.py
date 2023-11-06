@@ -1,12 +1,9 @@
+import torch
 from recbole.model.init import xavier_normal_initialization
+from torch import nn
 
 import model
-import world
-from train import losses, utils
-import torch
-from torch import nn
-import numpy as np
-import scipy.sparse as sp
+from train import losses
 
 group_number = 2
 
@@ -18,8 +15,8 @@ class CGCL(model.AbstractRecModel):
         self.counterfactual_embs_u = []
         self.counterfactual_embs_i = []
 
-        self.sub_graphs = None
-        self.n_fold = 1
+        self.A_fold_hat_u = None
+        self.A_fold_hat_i = None
         self.group = group_number
 
         # 子模型网络
@@ -39,7 +36,8 @@ class CGCL(model.AbstractRecModel):
         A_fold_hat_group = []
         A_fold_hat_group_filter = []
 
-        Graph_hat = utils.convert_sp_mat_to_sp_tensor(X).to(world.device)
+        # Graph_hat = utils.convert_sp_mat_to_sp_tensor(X).to(world.device)
+        Graph_hat = X
 
         # k groups
         for k in range(0, self.group):
@@ -63,55 +61,39 @@ class CGCL(model.AbstractRecModel):
 
         return A_fold_hat_group, A_fold_hat_group_filter
 
-    def prepare_each_epoch(self):
-        self.factual_embs = []
-        self.counterfactual_embs_u = []
-        self.counterfactual_embs_i = []
-
-        # TODO 第0层结果
-        embs_0 = torch.cat([self.embedding_user.weight, self.embedding_item.weight], dim=0)
-        self.factual_embs.append(embs_0)
-        for i in range(self.group):
-            self.counterfactual_embs_u.append([embs_0])
-            self.counterfactual_embs_i.append([embs_0])
-
-        # TODO 第1层结果
-        embs_1 = torch.cat(self.base_model(self.embedding_user.weight, self.embedding_item.weight,
-                                           self.Graph, n_layers=1, output_one_layer=True), dim=0)
-        self.factual_embs.append(embs_1)
-        for i in range(self.group):
-            self.counterfactual_embs_u[i].append(embs_1)
-            self.counterfactual_embs_i[i].append(embs_1)
-
-        # TODO 根据第一层结果分割组
-        group_emb = self.group_mlp(self.factual_embs[1])
-        a_top, a_top_idx = torch.topk(group_emb, 1, largest=False)
-        group_emb = torch.eq(group_emb, a_top).to(torch.float32)
-
-        # 根据分组结果生成掩膜
-        u_group_embeddings, i_group_embeddings = torch.split(group_emb, [self.n_users, self.n_items], dim=0)
-        user_group_embeddings = torch.cat((u_group_embeddings, torch.ones_like(i_group_embeddings)), dim=0)
-        item_group_embeddings = torch.cat((torch.ones_like(u_group_embeddings), i_group_embeddings), dim=0)
-
-        # 根据掩膜获得分组矩阵
-        self.A_fold_hat_u, A_fold_hat_u_filter = self._split_A_hat_group(sp.csr_matrix(self.Graph.to_dense().cpu().numpy()),
-                                                                    user_group_embeddings)
-        self.A_fold_hat_i, A_fold_hat_i_filter = self._split_A_hat_group(sp.csr_matrix(self.Graph.to_dense().cpu().numpy()),
-                                                                    item_group_embeddings)
+    # def prepare_each_epoch(self):
+        # self.factual_embs = []
+        # self.counterfactual_embs_u = []
+        # self.counterfactual_embs_i = []
+        #
+        # # MODULE 第0层结果
+        # embs_0 = torch.cat([self.embedding_user.weight, self.embedding_item.weight], dim=0)
+        # self.factual_embs.append(embs_0)
+        # for i in range(self.group):
+        #     self.counterfactual_embs_u.append([embs_0])
+        #     self.counterfactual_embs_i.append([embs_0])
+        #
+        # # MODULE 第1层结果
+        # embs_1 = torch.cat(self.base_model(self.embedding_user.weight, self.embedding_item.weight,
+        #                                    self.Graph, n_layers=1, output_one_layer=True), dim=0)
+        # self.factual_embs.append(embs_1)
+        # for i in range(self.group):
+        #     self.counterfactual_embs_u[i].append(embs_1)
+        #     self.counterfactual_embs_i[i].append(embs_1)
 
     def calculate_embedding(self):
         self.factual_embs = []
         self.counterfactual_embs_u = []
         self.counterfactual_embs_i = []
 
-        # TODO 第0层结果
+        # MODULE 第0层结果
         embs_0 = torch.cat([self.embedding_user.weight, self.embedding_item.weight], dim=0)
         self.factual_embs.append(embs_0)
         for i in range(self.group):
             self.counterfactual_embs_u.append([embs_0])
             self.counterfactual_embs_i.append([embs_0])
 
-        # TODO 第1层结果
+        # MODULE 第1层结果
         embs_1 = torch.cat(self.base_model(self.embedding_user.weight, self.embedding_item.weight,
                                            self.Graph, n_layers=1, output_one_layer=True), dim=0)
         self.factual_embs.append(embs_1)
@@ -119,36 +101,56 @@ class CGCL(model.AbstractRecModel):
             self.counterfactual_embs_u[i].append(embs_1)
             self.counterfactual_embs_i[i].append(embs_1)
 
-        # TODO 事实世界 第2、3层结果
+        # MODULE 根据第一层结果分割组
+        group_emb = self.group_mlp(self.factual_embs[1])
+        a_top, a_top_idx = torch.topk(group_emb, 1, largest=False)
+        group_emb = torch.eq(group_emb, a_top).to(torch.float32)
+
+        # MODULE 根据分组结果生成掩膜
+        u_group_embeddings, i_group_embeddings = torch.split(group_emb, [self.n_users, self.n_items], dim=0)
+        user_group_embeddings = torch.cat((u_group_embeddings, torch.ones_like(i_group_embeddings)), dim=0)
+        item_group_embeddings = torch.cat((torch.ones_like(u_group_embeddings), i_group_embeddings), dim=0)
+
+        # MODULE 根据掩膜获得分组矩阵
+        self.A_fold_hat_u, A_fold_hat_u_filter = self._split_A_hat_group(self.Graph, user_group_embeddings)
+        self.A_fold_hat_i, A_fold_hat_i_filter = self._split_A_hat_group(self.Graph, item_group_embeddings)
+
+        # MODULE 事实世界 第2、3层结果
         all_users, all_items = torch.split(self.factual_embs[1], [self.n_users, self.n_items], dim=0)
-        self.factual_embs.append(torch.cat(self.base_model(all_users, all_items, self.Graph, n_layers=1, output_one_layer=True), dim=0))
+        self.factual_embs.append(torch.cat(self.base_model(all_users, all_items,
+                                                           self.Graph, n_layers=1, output_one_layer=True), dim=0))
         all_users, all_items = torch.split(self.factual_embs[2], [self.n_users, self.n_items], dim=0)
-        self.factual_embs.append(torch.cat(self.base_model(all_users, all_items, self.Graph, n_layers=1, output_one_layer=True), dim=0))
+        self.factual_embs.append(torch.cat(self.base_model(all_users, all_items,
+                                                           self.Graph, n_layers=1, output_one_layer=True), dim=0))
 
         self.factual_embs = torch.mean(torch.stack(self.factual_embs, dim=0), dim=0)
 
-        # TODO 反事实世界 第2、3层结果，用户和物品均有分组
+        # MODULE 反事实世界 第2、3层结果，用户和物品均有分组
         for g in range(self.group):
             all_users, all_items = torch.split(self.counterfactual_embs_u[g][1], [self.n_users, self.n_items], dim=0)
             self.counterfactual_embs_u[g].append(
-                torch.cat(self.base_model(all_users, all_items, self.A_fold_hat_u[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
+                torch.cat(self.base_model(all_users, all_items,
+                                          self.A_fold_hat_u[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
             all_users, all_items = torch.split(self.counterfactual_embs_u[g][2], [self.n_users, self.n_items], dim=0)
             self.counterfactual_embs_u[g].append(
-                torch.cat(self.base_model(all_users, all_items, self.A_fold_hat_u[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
+                torch.cat(self.base_model(all_users, all_items,
+                                          self.A_fold_hat_u[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
 
             # 物品分组计算emb，使用物品图
             all_users, all_items = torch.split(self.counterfactual_embs_i[g][1], [self.n_users, self.n_items], dim=0)
             self.counterfactual_embs_i[g].append(
-                torch.cat(self.base_model(all_users, all_items, self.A_fold_hat_i[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
+                torch.cat(self.base_model(all_users, all_items,
+                                          self.A_fold_hat_i[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
             all_users, all_items = torch.split(self.counterfactual_embs_i[g][2], [self.n_users, self.n_items], dim=0)
             self.counterfactual_embs_i[g].append(
-                torch.cat(self.base_model(all_users, all_items, self.A_fold_hat_i[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
+                torch.cat(self.base_model(all_users, all_items,
+                                          self.A_fold_hat_i[g].coalesce(), n_layers=1, output_one_layer=True), dim=0))
 
         for g in range(self.group):
             self.counterfactual_embs_u[g] = torch.mean(torch.stack(self.counterfactual_embs_u[g], dim=0), dim=0)
             self.counterfactual_embs_i[g] = torch.mean(torch.stack(self.counterfactual_embs_i[g], dim=0), dim=0)
 
-        # TODO 从不同组中取相应的embs
+        # MODULE 从不同组中取相应的embs
         u_emb = self.factual_embs[0]
         i_emb = self.factual_embs[1]
 
@@ -157,7 +159,7 @@ class CGCL(model.AbstractRecModel):
         u_sub_emb_1, i_sub_emb_0 = torch.split(self.counterfactual_embs_i[0], [self.n_users, self.n_items], 0)
         u_sub_emb_2, i_sub_emb_0 = torch.split(self.counterfactual_embs_i[1], [self.n_users, self.n_items], 0)
 
-        # TODO 频繁嵌入和不频繁嵌入计算、融合
+        # MODULE 频繁嵌入和不频繁嵌入计算、融合
         frequent_embs_u = 0.5 * (u_sub_emb_1 + u_sub_emb_2)
         frequent_embs_i = 0.5 * (i_sub_emb_1 + i_sub_emb_2)
 
