@@ -89,7 +89,7 @@ device = torch.device('cuda' if GPU else "cpu")
 # region 功能设置
 PATH_ROOT = "D:/Codes/rec_torch"
 if platform.system().lower() == 'linux':
-    PATH_ROOT = "/home/byl/PycharmProjects/rec_torch"
+    PATH_ROOT = "/home/byl/code/rec_torch"
 PATH_CODE = join(PATH_ROOT, 'code')
 PATH_DATA = join(PATH_ROOT, 'data')
 PATH_OUTPUT = join(PATH_ROOT, 'output')
