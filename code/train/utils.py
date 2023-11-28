@@ -5,9 +5,10 @@
 @Author  ：Knkiss
 @Date    ：2023/2/14 12:14 
 """
+import os
 import smtplib
 from email.mime.text import MIMEText
-from random import random
+import random
 
 import numpy as np
 import scipy.sparse as sp
@@ -18,11 +19,15 @@ import world
 
 
 def set_seed(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
+    torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def sim(z1: torch.Tensor, z2: torch.Tensor):
@@ -51,7 +56,7 @@ def drop_edge_random(item2entities, p_drop, padding):
     for item, es in item2entities.items():
         new_es = list()
         for e in es.tolist():
-            if random() > p_drop:
+            if random.random() > p_drop:
                 new_es.append(e)
             else:
                 new_es.append(padding)

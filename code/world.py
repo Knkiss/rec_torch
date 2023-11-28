@@ -42,12 +42,12 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='CGCL')
+    parser.add_argument('--model', type=str, default='EmbeddingBox')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL、KGIN、KGAT、MCCLK
     # mine: PCL、KGCL_my
-    # unUse: QKV、GraphCL
+    # unUse: QKV、GraphCL、EmbeddingBox
     parser.add_argument('--dataset', type=str, default='citeulikea_GJJ')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
@@ -57,7 +57,7 @@ def parse_args():
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")
     parser.add_argument('--train_batch', type=int, default=2048)
-    parser.add_argument('--test_batch', type=int, default=4096)
+    parser.add_argument('--test_batch', type=int, default=1024)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
