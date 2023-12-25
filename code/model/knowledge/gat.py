@@ -22,8 +22,7 @@ class GAT(nn.Module):
         # x = F.dropout(item_embs, self.dropout, training=self.training)
         # y = F.dropout(entity_embs, self.dropout, training=self.training)
         x = self.layer.forward_relation(item_embs, entity_embs, w_r, adj)
-        if world.hyper_KGCL_my_ablated_model != 1:
-            x = F.dropout(x, self.dropout, training=self.training)
+        x = F.dropout(x, self.dropout, training=self.training)
         return x
 
 

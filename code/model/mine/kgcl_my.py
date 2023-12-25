@@ -16,7 +16,8 @@ class KGCL_my(model.AbstractRecModel):
         self.kg_dataset = dataloader.KGDataset()
         self.num_entities = self.kg_dataset.entity_count
         self.num_relations = self.kg_dataset.relation_count
-        print("user:{}, item:{}, entity:{}".format(self.num_users, self.num_items, self.num_entities))
+        if world.dataset_info_show_enable:
+            print("user:{}, item:{}, entity:{}".format(self.num_users, self.num_items, self.num_entities))
 
         self.contrast_views = {}
 
@@ -56,6 +57,7 @@ class KGCL_my(model.AbstractRecModel):
 
         # pre adjacency matrix
         rowsum = np.array(adj_mat.sum(1))
+        np.seterr(divide='ignore', invalid='ignore')  # 消除被除数为0的警告
         d_inv = np.power(rowsum, -0.5).flatten()
         d_inv[np.isinf(d_inv)] = 0.
         d_mat_inv = sp.diags(d_inv)
@@ -68,7 +70,7 @@ class KGCL_my(model.AbstractRecModel):
         col = torch.Tensor(coo.col).long()
         index = torch.stack([row, col])
         data = torch.FloatTensor(coo.data)
-        g = torch.sparse.FloatTensor(index, data, torch.Size(coo.shape)).coalesce().to(world.device)
+        g = torch.sparse_coo_tensor(index, data, torch.Size(coo.shape)).coalesce().to(world.device)
         g.requires_grad = False
         return g
 
@@ -113,11 +115,18 @@ class KGCL_my(model.AbstractRecModel):
         self.i1 = all_items_1
         self.i2 = all_items_2
 
-        inter_1 = torch.mul(user1_emb, item1_emb)
-        inter_2 = torch.mul(user2_emb, item2_emb)
-
-        # inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
-        # inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
+        if world.hyper_KGCL_my_ablated_model == 2:
+            inter_1 = user1_emb
+            inter_2 = user2_emb
+        elif world.hyper_KGCL_my_ablated_model == 3:
+            inter_1 = item1_emb
+            inter_2 = item2_emb
+        elif world.hyper_KGCL_my_ablated_model == 4:
+            inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
+            inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
+        else:
+            inter_1 = torch.mul(user1_emb, item1_emb)
+            inter_2 = torch.mul(user2_emb, item2_emb)
 
         sim = F.cosine_similarity(inter_1, inter_2)  # inters
         return sim

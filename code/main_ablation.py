@@ -5,16 +5,22 @@
 @Author  ：Knkiss
 @Date    ：2023/8/23 12:00
 """
-import main
+from main import Manager
 import world
 
 
 class Ablation:
     def __init__(self, ablations, datasets):
-        self.results = {}
-        self.best_result = None
+        # 展示信息全关
+        world.tqdm_enable = False
+        world.epoch_result_show_enable = False
+        world.model_info_show_enable = False
+        world.dataset_info_show_enable = False
+
+        # 保存结果全开
         world.predict_list_enable = True
         world.early_stop_enable = True
+
         self.ablation_list = ablations
         self.dataset_list = datasets
         self.ablation_experiments()
@@ -23,16 +29,13 @@ class Ablation:
         for i in self.dataset_list:
             for j in self.ablation_list:
                 world.dataset = i
-                # TODO 使用引用变量类型令此参数作为外部输入
                 world.hyper_KGCL_my_ablated_model = j
                 world.sys_ablation_name = str(j)
-                main.Manager()
+                world.sys_root_model = False
+                Manager()
 
 
 if __name__ == '__main__':
-    ablation_list = [0, 1, 2, 3]
-    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
-    # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
-
+    ablation_list = [0, 2, 3, 4]
+    dataset_list = ['lastfm_kg', 'amazonbook', 'movielens1m_kg']
     Ablation(ablation_list, dataset_list)

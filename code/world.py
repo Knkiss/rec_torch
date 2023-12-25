@@ -24,7 +24,7 @@ hyper_SGL_RATIO = 0.5  # 图生成比例
 hyper_KGDataset_entity_num_per_item = 10  # 一个item取多少个entity
 hyper_KGCL_kg_p_drop = 0.5  # kg去边概率
 hyper_KGCL_ui_p_drop = 0.1  # ui去边概率
-hyper_KGCL_my_ablated_model = 0  # optional=[0,1]  1=双KG不起作用，得到的Cui均为1
+hyper_KGCL_my_ablated_model = 0  # optional=[0,2,3,4] 0=vanilla 2=Qu 3=Qi 4=concatQui
 hyper_SSM_Loss_temp = 0.2  # 温度系数 越小对正负例区分越大
 hyper_SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
 hyper_SSM_Margin = 1
@@ -42,22 +42,23 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='EmbeddingBox')
+    parser.add_argument('--model', type=str, default='KGCL_my')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL、KGIN、KGAT、MCCLK
     # mine: PCL、KGCL_my
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='citeulikea_GJJ')
+    parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
 
     # PCL文章使用：'amazonbook', 'lastfm'
+    # KGAG文章使用：'amazonbook', 'movielens1m_kg', 'lastfm_kg'
     parser.add_argument('--metrics', type=list, default=['Precision', 'NDCG', 'Recall'],
                         help="[Recall, Precision, NDCG]")
     parser.add_argument('--train_batch', type=int, default=2048)
-    parser.add_argument('--test_batch', type=int, default=1024)
+    parser.add_argument('--test_batch', type=int, default=4096)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
@@ -118,6 +119,9 @@ mail_receivers = ['962443828@qq.com']
 mail_comment = ''
 
 linux_nohup = args.nohup
+epoch_result_show_enable = True
+model_info_show_enable = True
+dataset_info_show_enable = True
 tqdm_enable = True
 if linux_nohup:
     tqdm_enable = False

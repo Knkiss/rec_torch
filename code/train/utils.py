@@ -47,7 +47,7 @@ def dropout_x(x, keep_prob):
     random_index = random_index.int().bool()
     index = index[random_index]
     values = values[random_index] / keep_prob
-    g = torch.sparse.FloatTensor(index.t(), values, size)
+    g = torch.sparse_coo_tensor(index.t(), values, size)
     return g
 
 
@@ -87,7 +87,7 @@ def convert_sp_mat_to_sp_tensor(x):
     col = torch.Tensor(coo.col).long()
     index = torch.stack([row, col])
     data = torch.FloatTensor(coo.data)
-    return torch.sparse.FloatTensor(index, data, torch.Size(coo.shape))
+    return torch.sparse_coo_tensor(index, data, torch.Size(coo.shape))
 
 
 def getLabel(test_data, pred_data):

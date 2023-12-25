@@ -76,6 +76,8 @@ class Manager:
             world.tensorboard_instance = self.tensorboard
 
     def print_rec_module_info(self):
+        if not world.model_info_show_enable:
+            return
         print("--------------------- Modules  ---------------------")
         print(self.rec_model)
         print("----------------------------------------------------")
@@ -85,21 +87,22 @@ class Manager:
 
     def __loop_procedure(self):
         self.timer.start('time_sum')
-        for self.epoch in range(0, world.sys_max_epochs):
-            world.sys_epoch = self.epoch
-            if self.stopping_step == -1 or self.epoch == world.sys_max_epochs - 1:
-                print("Best result: " + str(self.best_result))
-                break
-            for i in self.procedure:
-                if i == Procedure.Train_Rec:
-                    self.__procedure_train_Rec()
-                elif i == Procedure.Test:
-                    self.__procedure_test()
-                elif i == Procedure.Train_Trans:
-                    self.__procedure_train_TransR()
-                else:
-                    raise Exception('不存在的进程类型')
-            self.scheduler.step()
+        with tqdm(range(0, world.sys_max_epochs), desc='Loop procedure', disable=world.tqdm_enable) as t:
+            for self.epoch in t:
+                world.sys_epoch = self.epoch
+                if self.stopping_step == -1 or self.epoch == world.sys_max_epochs - 1:
+                    print("Best result: " + str(self.best_result))
+                    break
+                for i in self.procedure:
+                    if i == Procedure.Train_Rec:
+                        self.__procedure_train_Rec()
+                    elif i == Procedure.Test:
+                        self.__procedure_test()
+                    elif i == Procedure.Train_Trans:
+                        self.__procedure_train_TransR()
+                    else:
+                        raise Exception('不存在的进程类型')
+                self.scheduler.step()
         self.timer.end('time_sum')
 
     def __procedure_train_TransR(self):
@@ -159,7 +162,8 @@ class Manager:
         stop_metric = world.early_stop_metric
         if self.epoch == 0 or (self.epoch < world.test_start_epoch and self.epoch % 5 == 0):
             self.best_result, self.predict = self.__Test()
-            print('\033[0;31m' + str(self.best_result) + '\033[0m')
+            if world.epoch_result_show_enable:
+                print('\033[0;31m' + str(self.best_result) + '\033[0m')
         elif self.epoch >= world.test_start_epoch and self.epoch % world.test_verbose_epoch == 0:
             result, predict = self.__Test()
             if len(world.sys_topKs) == 1:
@@ -172,20 +176,24 @@ class Manager:
                 self.stopping_step = 0
                 self.best_result = result
                 self.predict = predict
-                print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
+                if world.epoch_result_show_enable:
+                    print('\033[0;31m' + str(result) + ' Find a better model' + '\033[0m')
                 if world.pretrain_output_enable:
                     if not os.path.exists(world.PATH_PRETRAIN):
                         os.makedirs(world.PATH_PRETRAIN)
                     output = world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.model + '.pretrain'
                     torch.save(self.rec_model.state_dict(), output)
             elif world.early_stop_enable:
-                print('\033[0;32m' + str(result) + '\033[0m')
+                if world.epoch_result_show_enable:
+                    print('\033[0;32m' + str(result) + '\033[0m')
                 self.stopping_step += 1
                 if self.stopping_step >= world.early_stop_epoch_cnt:
-                    print(f"early stop triggerd at epoch {self.epoch}")
+                    if world.epoch_result_show_enable:
+                        print(f"early stop triggerd at epoch {self.epoch}")
                     self.stopping_step = -1
             else:
-                print('\033[0;32m' + str(result) + '\033[0m')
+                if world.epoch_result_show_enable:
+                    print('\033[0;32m' + str(result) + '\033[0m')
 
     def __Test(self):
         self.rec_model.eval()

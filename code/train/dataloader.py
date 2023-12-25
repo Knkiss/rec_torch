@@ -97,9 +97,10 @@ class UIDataset(Dataset):
         self.m_item += 1
         self.n_user += 1
         self.Graph = None
-        print(f"{self.trainDataSize} interactions for training")
-        print(f"{self.testDataSize} interactions for testing")
-        print(f"{world.dataset} Sparsity : {(self.trainDataSize + self.testDataSize) / self.n_users / self.m_items}")
+        if world.dataset_info_show_enable:
+            print(f"{self.trainDataSize} interactions for training")
+            print(f"{self.testDataSize} interactions for testing")
+            print(f"{world.dataset} Sparsity : {(self.trainDataSize + self.testDataSize) / self.n_users / self.m_items}")
 
         # (users,items), bipartite graph
         self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)),
@@ -107,7 +108,8 @@ class UIDataset(Dataset):
         # pre-calculate
         self._allPos = self.getUserPosItems(list(range(self.n_user)))
         self.__testDict = self.__build_test()
-        print(f"{world.dataset} is ready to go")
+        if world.dataset_info_show_enable:
+            print(f"{world.dataset} is ready to go")
 
     @property
     def n_users(self):
@@ -130,14 +132,17 @@ class UIDataset(Dataset):
         return self._allPos
 
     def getSparseGraph(self):
-        print("loading adjacency matrix")
+        if world.dataset_info_show_enable:
+            print("loading adjacency matrix")
         if self.Graph is None:
             try:
                 pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
-                print("successfully loaded...")
+                if world.dataset_info_show_enable:
+                    print("successfully loaded...")
                 norm_adj = pre_adj_mat
             except Exception:
-                print("generating adjacency matrix")
+                if world.dataset_info_show_enable:
+                    print("generating adjacency matrix")
                 s = time()
                 adj_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
                 adj_mat = adj_mat.tolil()
