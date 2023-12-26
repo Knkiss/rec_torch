@@ -10,7 +10,7 @@ import world
 
 
 class Ablation:
-    def __init__(self, ablations, datasets):
+    def __init__(self, ablations, datasets, postfix):
         # 展示信息全关
         world.tqdm_enable = False
         world.epoch_result_show_enable = False
@@ -23,19 +23,20 @@ class Ablation:
 
         self.ablation_list = ablations
         self.dataset_list = datasets
-        self.ablation_experiments()
+        self.ablation_experiments(postfix)
 
-    def ablation_experiments(self):
+    def ablation_experiments(self, postfix):
         for i in self.dataset_list:
             for j in self.ablation_list:
                 world.dataset = i
                 world.hyper_KGCL_my_ablated_model = j
-                world.sys_ablation_name = str(j)
+                world.sys_ablation_name = str(j) + str(postfix)
                 world.sys_root_model = False
                 Manager()
 
 
 if __name__ == '__main__':
+    postfix = '_2'
     ablation_list = [0, 2, 3, 4]
     dataset_list = ['lastfm_kg', 'amazonbook', 'movielens1m_kg']
-    Ablation(ablation_list, dataset_list)
+    Ablation(ablation_list, dataset_list, postfix)

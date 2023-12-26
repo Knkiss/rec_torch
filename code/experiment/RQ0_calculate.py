@@ -262,9 +262,9 @@ def main(dataset, model, debug=False):
 
 if __name__ == '__main__':
     dataset = 'lastfm_kg'
-    model = 'LightGCN'
+    model = 'KGAG_ab4'
     main(dataset=dataset, model=model, debug=False)
 
     record_file = join(world.PATH_RECORD, dataset + '_' + model + '.npy')
     load_dict: dict = np.load(record_file, allow_pickle=True).item()
-    pass
+    print(load_dict[model]['result'])

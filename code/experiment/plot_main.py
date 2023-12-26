@@ -74,14 +74,14 @@ def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=
             width = 0.04
             width1 = 0.05
             ax = plt.subplot(111)
-            plt.bar(x, data[models[-1]], width=width, label=models[-1], fc='#e2ded3', edgecolor='k')
+            plt.bar(x, data[models[-1]], width=width, label=models[-1], fc='#AEB7E8')
             for i in range(len(x)):
                 x[i] += width1
             plt.bar(x, data[models[-2]], width=width, label=models[-2],
-                    tick_label=name_list, fc='#857671', edgecolor='k')
+                    tick_label=name_list, fc='#6E7BC7')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#4e413b', edgecolor='k')
+            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#484E82')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -165,14 +165,14 @@ def RQ3_compare_longTail(datasets, models, type='png', fig_show=False, fig_save=
             width = 0.04
             width1 = 0.05
             ax = plt.subplot(111)
-            plt.bar(x, data[models[-1]], width=width, label=models[-1], fc='#70c1b3', edgecolor='k')
+            plt.bar(x, data[models[-1]], width=width, label=models[-1], fc='#9ED2D3')
             for i in range(len(x)):
                 x[i] += width1
             plt.bar(x, data[models[-2]], width=width, label=models[-2],
-                    tick_label=name_list, fc='#2a9d8f', edgecolor='k')
+                    tick_label=name_list, fc='#5CA8B3')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#1a535c', edgecolor='k')
+            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#2B5A66')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -444,21 +444,21 @@ def RQ0_datasets_statistics(datasets):
 
 
 if __name__ == '__main__':
-    dataset_list = ['citeulikea_GJJ']
-    model_list = ['CGCL', 'LightGCN', 'MF']
-    save_fig_type = 'png'  # png 或 eps
+    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
+    save_fig_type = 'eps'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
     # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
-    RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
-                    fig_show=False, fig_save=False,
-                    table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
+    # RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
+    #                 fig_show=False, fig_save=False,
+    #                 table_dataset_show=False, table_metrics_show=True, table_latex_show=False)
 
-    # model_list = ['KGAG', 'KGCL', 'SGL']
-    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
-    #                      fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
-    #
+    model_list = ['KGAG', 'KGCL', 'SGL']
+    RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
+                         fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
+
     # RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
-    #                      fig_show=False, fig_save=True, metric='ndcg',
+    #                      fig_show=True, fig_save=False, metric='ndcg',
     #                      fig_metric=True, fig_num=False, fig_class=False)
