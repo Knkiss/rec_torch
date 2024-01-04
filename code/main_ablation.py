@@ -29,7 +29,7 @@ class Ablation:
         for i in self.dataset_list:
             for j in self.ablation_list:
                 world.dataset = i
-                world.hyper_KGCL_my_ablated_model = j
+                world.hyper_KGAG_ablated_model = j
                 world.sys_ablation_name = str(j) + str(postfix)
                 world.sys_root_model = False
                 Manager()

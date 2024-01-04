@@ -61,7 +61,7 @@ class GraphAttentionLayer(nn.Module):
         zero_vec = -9e15 * torch.ones_like(e)
         attention = torch.where(adj > 0, e, zero_vec)
         attention = F.softmax(attention, dim=1)
-        if world.hyper_KGCL_my_ablated_model != 1:
+        if world.hyper_KGAG_ablated_model != 1:
             attention = F.dropout(attention, self.dropout, training=self.training)  # N, e_num
         # (N, 1, e_num) * (N, e_num, out_features) -> N, out_features
         entity_emb_weighted = torch.bmm(attention.unsqueeze(1), entity_embs).squeeze()

@@ -24,7 +24,7 @@ hyper_SGL_RATIO = 0.5  # 图生成比例
 hyper_KGDataset_entity_num_per_item = 10  # 一个item取多少个entity
 hyper_KGCL_kg_p_drop = 0.5  # kg去边概率
 hyper_KGCL_ui_p_drop = 0.1  # ui去边概率
-hyper_KGCL_my_ablated_model = 0  # optional=[0,2,3,4] 0=vanilla 2=Qu 3=Qi 4=concatQui
+hyper_KGAG_ablated_model = 0  # optional=[0,2,3,4] 0=vanilla 2=Qu 3=Qi 4=concatQui
 hyper_SSM_Loss_temp = 0.2  # 温度系数 越小对正负例区分越大
 hyper_SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
 hyper_SSM_Margin = 1
@@ -42,11 +42,11 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGCL_my')
+    parser.add_argument('--model', type=str, default='KGAG')
     # classic: MF、LightGCN
     # contrastive: SGL、SSM、SimGCL
     # KG-based: KGCL、KGIN、KGAT、MCCLK
-    # mine: PCL、KGCL_my
+    # mine: PCL、KGAG
     # unUse: QKV、GraphCL、EmbeddingBox
     parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'

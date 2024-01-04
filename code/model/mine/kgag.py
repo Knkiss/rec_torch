@@ -10,9 +10,9 @@ from train import losses, dataloader, utils
 from train.losses import Loss
 
 
-class KGCL_my(model.AbstractRecModel):
+class KGAG(model.AbstractRecModel):
     def __init__(self):
-        super(KGCL_my, self).__init__()
+        super(KGAG, self).__init__()
         self.kg_dataset = dataloader.KGDataset()
         self.num_entities = self.kg_dataset.entity_count
         self.num_relations = self.kg_dataset.relation_count
@@ -97,7 +97,7 @@ class KGCL_my(model.AbstractRecModel):
         all_items_2 = self.cal_item_embedding_from_kg(view2)  # items * dims
 
         # DIFF 性能提升 Cui计算的 u_emb i_emb 经过LightGCN
-        if world.hyper_KGCL_my_ablated_model == 1:
+        if world.hyper_KGAG_ablated_model == 1:
             dropout = False
         else:
             dropout = True
@@ -115,13 +115,13 @@ class KGCL_my(model.AbstractRecModel):
         self.i1 = all_items_1
         self.i2 = all_items_2
 
-        if world.hyper_KGCL_my_ablated_model == 2:
+        if world.hyper_KGAG_ablated_model == 2:
             inter_1 = user1_emb
             inter_2 = user2_emb
-        elif world.hyper_KGCL_my_ablated_model == 3:
+        elif world.hyper_KGAG_ablated_model == 3:
             inter_1 = item1_emb
             inter_2 = item2_emb
-        elif world.hyper_KGCL_my_ablated_model == 4:
+        elif world.hyper_KGAG_ablated_model == 4:
             inter_1 = torch.cat((user1_emb, item1_emb), dim=1)  # inters * dims*2
             inter_2 = torch.cat((user2_emb, item2_emb), dim=1)  # inters * dims*2
         else:
@@ -148,7 +148,7 @@ class KGCL_my(model.AbstractRecModel):
 
     def prepare_each_epoch(self):
         kgv1, kgv2 = self.get_kg_views()
-        if world.hyper_KGCL_my_ablated_model == 1:
+        if world.hyper_KGAG_ablated_model == 1:
             kgv2 = kgv1.copy()
         stability = self.item_kg_stability(kgv1, kgv2).to(world.device)
         uiv1 = self.get_ui_views_weighted(stability, 1)
