@@ -65,6 +65,8 @@ class GraphAttentionLayer(nn.Module):
             attention = F.dropout(attention, self.dropout, training=self.training)  # N, e_num
         # (N, 1, e_num) * (N, e_num, out_features) -> N, out_features
         entity_emb_weighted = torch.bmm(attention.unsqueeze(1), entity_embs).squeeze()
+        # attention_change = torch.ones_like(attention.unsqueeze(1))
+        # entity_emb_weighted = torch.bmm(attention_change, entity_embs).squeeze()
         h_prime = entity_emb_weighted + item_embs
 
         if self.concat:

@@ -12,6 +12,7 @@ class Loss(Enum):
     SSL = 'SSL'
     TransE = 'TransE'
     Regulation = 'reg'
+    MAE = 'MAE'
 
 
 def loss_BPR(all_users, all_items, users, pos, neg):
@@ -169,9 +170,14 @@ def loss_New_2_3(all_users, all_items, users, pos, neg):
 
 
 def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
-    userEmb0 = all_users_origin(users.long())
-    posEmb0 = all_items_origin(pos.long())
-    negEmb0 = all_items_origin(neg.long())
+    if isinstance(all_users_origin,torch.Tensor):
+        userEmb0 = all_users_origin[users.long()]
+        posEmb0 = all_items_origin[pos.long()]
+        negEmb0 = all_items_origin[neg.long()]
+    else:
+        userEmb0 = all_users_origin(users.long())
+        posEmb0 = all_items_origin(pos.long())
+        negEmb0 = all_items_origin(neg.long())
     loss = (1 / 2) * (userEmb0.norm(2).pow(2) + posEmb0.norm(2).pow(2) + negEmb0.norm(2).pow(2)) / float(len(users))
     return loss * world.hyper_decay
 

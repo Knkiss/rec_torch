@@ -30,6 +30,7 @@ hyper_SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
 hyper_SSM_Margin = 1
 hyper_decay = 1e-4
 hyper_embedding_dim = 64
+hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
 
 sys_seed = 2020
 sys_epoch = 0
@@ -42,11 +43,11 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='KGAG')
-    # classic: MF、LightGCN
-    # contrastive: SGL、SSM、SimGCL
-    # KG-based: KGCL、KGIN、KGAT、MCCLK
-    # mine: PCL、KGAG
+    parser.add_argument('--model', type=str, default='CKGAUI')
+    # classic: LightGCN、MF
+    # contrastive: SSM、SimGCL、SGL
+    # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
+    # mine: PCL、KGIC、CKGAUI
     # unUse: QKV、GraphCL、EmbeddingBox
     parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'

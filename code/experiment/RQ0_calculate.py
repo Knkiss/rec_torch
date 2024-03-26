@@ -262,7 +262,7 @@ def main(dataset, model, debug=False):
 
 if __name__ == '__main__':
     dataset = 'lastfm_kg'
-    model = 'KGAG_ab4'
+    model = 'KGAG_alpha'
     main(dataset=dataset, model=model, debug=False)
 
     record_file = join(world.PATH_RECORD, dataset + '_' + model + '.npy')

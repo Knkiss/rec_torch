@@ -10,9 +10,9 @@ from train import losses, dataloader, utils
 from train.losses import Loss
 
 
-class KGAG(model.AbstractRecModel):
+class KGIC(model.AbstractRecModel):
     def __init__(self):
-        super(KGAG, self).__init__()
+        super(KGIC, self).__init__()
         self.kg_dataset = dataloader.KGDataset()
         self.num_entities = self.kg_dataset.entity_count
         self.num_relations = self.kg_dataset.relation_count

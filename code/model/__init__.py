@@ -18,6 +18,8 @@ from model.knowledge.cke import CKE
 from model.knowledge.mcclk import MCCLK
 from model.general.sgl_recbole import SGL_recbole
 from model.GJJ.CGCL import CGCL
+from model.knowledge.kgrec import KGRec
+from model.mine.ckgaui import CKGAUI
 
 
 def get_model_by_name(name):

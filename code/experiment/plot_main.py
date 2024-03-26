@@ -19,12 +19,14 @@ warnings.filterwarnings('ignore')
 
 marker_list = [m for m, func in Line2D.markers.items()
                if func != 'nothing' and m not in Line2D.filled_markers] + list(Line2D.filled_markers)
-color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
-metric_list = ['recall', 'ndcg', 'hit_ratio', 'map']
+color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r',
+              'purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
+# metric_list = ['recall', 'ndcg', 'hit_ratio', 'map']
+metric_list = ['recall', 'ndcg']
 metric_list_name = ['Recall', 'NDCG', 'HR', 'MAP']
 metric_name = {'recall': 'Recall', 'ndcg': 'NDCG'}
 dataset_name = {'amazonbook': 'AmazonBook', 'movielens1m_kg': 'Movielens-1M', 'lastfm_kg': 'LastFM',
-                'citeulikea_GJJ': 'CiteULikeA-GJJ'}
+                'citeulikea_GJJ': 'CiteULikeA-GJJ', 'yelp2018_kg': 'Yelp2018', 'lastfm_wxkg': 'LastFM'}
 
 
 def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=False,
@@ -221,7 +223,7 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
                 record_file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
                 load_dict: dict = np.load(record_file, allow_pickle=True).item()
                 data[model] = load_dict[model]['result'][metric]
-                performance_table[dataset][metric][model] = data[model][4]
+                performance_table[dataset][metric][model] = data[model][-1]
                 y_max = max(y_max, max(data[model]))
                 y_min = min(y_min, min(data[model]))
 
@@ -444,21 +446,30 @@ def RQ0_datasets_statistics(datasets):
 
 
 if __name__ == '__main__':
+    # dataset_list = ['amazonbook']
+    # model_list = ['KGGE','KGRec','KGAG','KGCL','SGL','MCCLK','KGIN','KGAT','LightGCN','MF']
+    # dataset_list = ['amazonbook', 'yelp2018_kg', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
+    # model_list = ['CKGAGG_2', 'CKGAGG_1', 'CKGAGG', 'PCL', 'KGAG', 'KGRec', 'SSM', 'SimGCL']
+
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
-    save_fig_type = 'eps'  # png 或 eps
-    world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
+    model_list = ['KGAG_alpha']
 
     # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
+
+    # model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
+    # dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    save_fig_type = 'eps'  # png 或 eps
+    world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
+
     # RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
     #                 fig_show=False, fig_save=False,
-    #                 table_dataset_show=False, table_metrics_show=True, table_latex_show=False)
+    #                 table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
 
-    model_list = ['KGAG', 'KGCL', 'SGL']
-    RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
-                         fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
-
+    # model_list = ['KGAG', 'KGCL', 'SGL']
+    # dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
+    #                      fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
     # RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
-    #                      fig_show=True, fig_save=False, metric='ndcg',
+    #                      fig_show=False, fig_save=True, metric='ndcg',
     #                      fig_metric=True, fig_num=False, fig_class=False)
