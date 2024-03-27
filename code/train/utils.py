@@ -28,6 +28,9 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    # 设置环境变量并启用确定性算法，保证每次实验的结果一致
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    torch.use_deterministic_algorithms(True)
 
 
 def sim(z1: torch.Tensor, z2: torch.Tensor):
@@ -37,6 +40,16 @@ def sim(z1: torch.Tensor, z2: torch.Tensor):
         z1 = F.normalize(z1)
         z2 = F.normalize(z2)
         return torch.mm(z1, z2.t())
+
+
+def construct_graph(edge, weight):
+    n_users = edge[0].max() + 1
+    n_items = edge[1].max() + 1
+
+    index = torch.stack([torch.concat([edge[0], edge[1]+n_users]), torch.concat([edge[1]+n_users, edge[0]])])
+    values = torch.concat([weight, weight])
+    g = torch.sparse_coo_tensor(index, values, [n_users+n_items, n_users+n_items]).coalesce()
+    return g
 
 
 def dropout_x(x, keep_prob):

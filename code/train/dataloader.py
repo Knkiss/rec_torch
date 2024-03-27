@@ -219,10 +219,17 @@ class KGDataset(Dataset):
     def relation_count(self):
         return self.kg_data['r'].max() + 2
 
-    def get_kg_graph(self):
+    def get_kg_graph(self, start_r=0, inverse=False):
         head = self.kg_data['h'].values
         tail = self.kg_data['t'].values + head.max()
-        value = self.kg_data['r'].values
+        value = self.kg_data['r'].values + start_r
+        if inverse:
+            inverse_head = tail
+            inverse_tail = head
+            inverse_value = value + max(value)
+            head = np.concatenate((head, inverse_tail))
+            tail = np.concatenate((tail, inverse_head))
+            value = np.concatenate((value, inverse_value))
         kg_graph = coo_matrix((value, (head, tail)), shape=(tail.max() + 1, tail.max() + 1))
         return kg_graph
 

@@ -6,7 +6,7 @@ from model.unuse.qkv import QKV
 from model.unuse.graphcl import GraphCL
 from model.knowledge.kgcl import KGCL
 from model.knowledge.gat import GAT
-from model.mine.kgag import KGAG
+from model.mine.kgic import KGIC
 from model.general.ssm import SSM
 from model.unuse.graphadd import GraphADD
 from model.mine.pcl import PCL

@@ -52,6 +52,8 @@ class Manager:
         self.__prepare_optimizer()
         self.__prepare_tensorboard()
         self.print_rec_module_info()
+        utils.set_seed(world.sys_seed)
+        # 初始化init函数导致seed的使用次数变化，重新设置seed使得batch随机结果一致
         self.__loop_procedure()
         self.__close()
         utils.mail_on_stop(self.best_result)
