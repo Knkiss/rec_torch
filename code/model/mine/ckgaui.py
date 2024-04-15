@@ -9,7 +9,7 @@ from torch_scatter import scatter_sum
 
 import model
 import world
-from train import dataloader, losses
+from train import dataloader, losses, utils
 
 
 class CKGGCN(nn.Module):
@@ -83,16 +83,14 @@ class CKGAUI(model.AbstractRecModel):
         self.ui_gcn = model.LightGCN()
 
         # Hyperparameters
-        self.ui_gcn_layers = 3
+        self.ui_gcn_layers = world.hyper_CKGAUI_ui_layers
         self.ui_gcn_graph_dropout = 0.2
-        self.ckg_gcn_layers = 2
+        self.ckg_gcn_layers = world.hyper_CKGAUI_ckg_layers
+
+    def prepare_each_epoch(self):
+        pass
 
     def calculate_embedding(self):
-        # user_ui_rep, item_ui_rep = self.ui_gcn(self.embedding_user.weight,
-        #                                        self.embedding_item.weight,
-        #                                        utils.construct_graph(self.inter_edge, self.inter_edge_w),
-        #                                        n_layers=self.ui_gcn_layers,
-        #                                        drop_prob=self.ui_gcn_dropout)
         user_ckg_rep, item_ckg_rep = self.ckg_gcn(self.ckg_gcn_layers,
                                                   self.embedding_user.weight,
                                                   torch.concat([self.embedding_item.weight,
@@ -102,37 +100,94 @@ class CKGAUI(model.AbstractRecModel):
                                                   self.edge_index,
                                                   self.edge_type)
 
-        # user_final_rep, item_final_rep = user_ui_rep, item_ui_rep
-        user_final_rep, item_final_rep = user_ckg_rep, item_ckg_rep
-        return user_final_rep, item_final_rep
+        # UU link prediction，两个数值应该同时变大，更多空间但更难进入
+        # uu_topK, uu_threshold = 5, 0.5
+        # uu_pred = torch.sigmoid(torch.mm(user_ckg_rep, user_ckg_rep.T)).fill_diagonal_(0)
+        # values, col_indices = torch.topk(uu_pred, uu_topK, dim=1)  # 梯度断开
+        # non_zero_indices = values.gt(uu_threshold).nonzero()
+        # uu_index = torch.stack([torch.arange(self.n_users).unsqueeze(1).repeat(1, uu_topK).to(world.device).view(-1)[
+        #                             non_zero_indices[:, 0]], col_indices.view(-1)[non_zero_indices[:, 0]]], dim=1).t()
+        # uu_value = (values[non_zero_indices[:, 0], non_zero_indices[:, 1]] - uu_threshold) / (1 - uu_threshold)
+        # uu_value = (self.inter_edge_w.mean() - self.inter_edge_w.min()) * uu_value + self.inter_edge_w.min()
+        # inter_edge_w = self.inter_edge_w * (self.inter_edge_w.sum() / (self.inter_edge_w.sum() + uu_value.sum()))
+
+        # II link prediction
+        # ii_topK, ii_threshold, ii_weight_threshold = 5, 0.75, 0.1
+        # ii_pred = torch.sigmoid(torch.mm(item_ckg_rep[:self.n_items], item_ckg_rep[:self.n_items].T)).fill_diagonal_(0)
+        # values, col_indices = torch.topk(ii_pred, ii_topK, dim=1)  # 梯度断开
+        # non_zero_indices = values.gt(ii_threshold).nonzero()
+        # ii_index = torch.stack([torch.arange(self.n_items).unsqueeze(1).repeat(1, ii_topK).to(world.device).view(-1)[
+        #                             non_zero_indices[:, 0]], col_indices.view(-1)[non_zero_indices[:, 0]]], dim=1).t()
+        # random_value = torch.rand(non_zero_indices.size(0)).to(world.device)
+        # ii_value = ii_weight_threshold * random_value
+
+        # UI GCN
+        # self.Graph = utils.construct_graph(self.inter_edge, self.inter_edge_w)
+        # self.Graph = utils.construct_graph(self.inter_edge, inter_edge_w, uu_index, uu_value)
+        # self.Graph = utils.construct_graph(self.inter_edge, self.inter_edge_w, ii_index+self.n_users, ii_value)
+        self.Graph = utils.construct_graph(self.inter_edge, self.inter_edge_w)
+        user_ui_rep, item_ui_rep = self.ui_gcn(self.embedding_user.weight,
+                                               self.embedding_item.weight,
+                                               self.Graph,
+                                               n_layers=self.ui_gcn_layers,
+                                               drop_prob=self.ui_gcn_graph_dropout)
+
+        # user_final_rep = torch.concat([user_ui_rep, user_ckg_rep])
+        # item_final_rep = torch.concat([item_ui_rep, item_ckg_rep[:self.n_items, :]])
+        user_final_rep = user_ui_rep + user_ckg_rep
+        item_final_rep = item_ui_rep + item_ckg_rep[:self.n_items, :]
+        # user_final_rep = user_ckg_rep
+        # item_final_rep = item_ckg_rep[:self.n_items, :]
+        # utils.MAD_metric(torch.cat([user_ui_rep, item_ui_rep]))  # TOD
+        if not self.training:
+            return user_final_rep, item_final_rep
+        else:
+            return user_final_rep, item_final_rep, user_ui_rep, item_ui_rep, user_ckg_rep, item_ckg_rep
 
     def calculate_loss(self, users, pos, neg):
-        # user_ui_rep, item_ui_rep = self.ui_gcn(self.embedding_user.weight,
-        #                                        self.embedding_item.weight,
-        #                                        utils.construct_graph(self.inter_edge, self.inter_edge_w),
-        #                                        n_layers=self.ui_gcn_layers,
-        #                                        drop_prob=self.ui_gcn_dropout)
-        user_ckg_rep, item_ckg_rep = self.ckg_gcn(self.ckg_gcn_layers,
-                                                  self.embedding_user.weight,
-                                                  torch.concat([self.embedding_item.weight,
-                                                                self.embedding_entity.weight]),
-                                                  self.inter_edge,
-                                                  self.inter_edge_w,
-                                                  self.edge_index,
-                                                  self.edge_type)
-
-        # user_final_rep, item_final_rep = user_ui_rep, item_ui_rep
-        user_final_rep, item_final_rep = user_ckg_rep, item_ckg_rep
+        (user_final_rep, item_final_rep, user_ui_rep,
+         item_ui_rep, user_ckg_rep, item_ckg_rep) = self.calculate_embedding()
 
         loss = {losses.Loss.BPR.value: losses.loss_BPR(user_final_rep, item_final_rep, users, pos, neg),
                 losses.Loss.Regulation.value: losses.loss_regulation(self.embedding_user, self.embedding_item, users,
-                                                                     pos, neg)}
-        # loss_ssl_item = self.create_mae_loss(item_ckg_rep[:self.n_items, :], item_ui_rep)
-        # loss_ssl_user = self.create_mae_loss(user_ckg_rep, user_ui_rep)
-        # loss[losses.Loss.SSL.value] = loss_ssl_user + loss_ssl_item
+                                                                     pos, neg),
+                # 跨CKG和UI的SSM
+                # losses.Loss.SSL.value: losses.loss_SSM_origin(user_ui_rep, item_ckg_rep, users,
+                #                                               pos) * world.hyper_SSM_Regulation/2 +
+                #                        losses.loss_SSM_origin(user_ckg_rep, item_ui_rep, users,
+                #                                               pos) * world.hyper_SSM_Regulation/2,
+                # CKG和UI分别做SSM
+                # losses.Loss.SSL.value: losses.loss_SSM_origin(user_ui_rep, item_ui_rep, users,
+                #                                               pos) * world.hyper_SSM_Regulation / 2 +
+                #                        losses.loss_SSM_origin(user_ckg_rep, item_ckg_rep, users,
+                #                                               pos) * world.hyper_SSM_Regulation / 2,
+                # 只有UI的SSM
+                losses.Loss.SSL.value: losses.loss_SSM_origin(user_ui_rep, item_ui_rep, users,
+                                                              pos) * world.hyper_SSM_Regulation,
+                # losses.Loss.SSL.value: (losses.loss_info_nce(user_ui_rep, user_ckg_rep, users) +
+                #                         losses.loss_info_nce(item_ui_rep, item_ckg_rep[:self.n_items], pos)),
+                # losses.Loss.MAE.value: self.create_emb_mae_loss(user_ckg_rep, item_ckg_rep,
+                #                                                 user_ui_rep, item_ui_rep,
+                #                                                 users, pos),
+                # losses.Loss.MAE.value: self.create_inter_mae_loss(user_ckg_rep, item_ckg_rep,
+                #                                                   user_ui_rep, item_ui_rep,
+                #                                                   users, pos)
+                }
         return loss
 
-    # @staticmethod
-    # def create_mae_loss(source_emb, target_emb):
-    #     scores = -torch.log(torch.sigmoid(torch.mul(source_emb, target_emb).sum(1))).sum()
-    #     return scores * 0.01
+    @staticmethod
+    def create_emb_mae_loss(user_emb, item_emb, user_2_emb, item_2_emb, users, pos):
+        source_emb = user_emb[users]
+        target_emb = user_2_emb[users]
+        scores = -torch.log(torch.sigmoid(torch.mul(source_emb, target_emb).sum(1))).sum()
+        source_emb = item_emb[pos]
+        target_emb = item_2_emb[pos]
+        scores += -torch.log(torch.sigmoid(torch.mul(source_emb, target_emb).sum(1))).sum()
+        return scores * world.hyper_ssl_reg
+
+    @staticmethod
+    def create_inter_mae_loss(user_emb, item_emb, user_2_emb, item_2_emb, users, pos):
+        inter_1 = torch.mul(user_emb[users], item_emb[pos])
+        inter_2 = torch.mul(user_2_emb[users], item_2_emb[pos])
+        scores = -torch.log(torch.sigmoid(torch.mul(inter_1, inter_2).sum(1))).sum()
+        return scores * world.hyper_ssl_reg

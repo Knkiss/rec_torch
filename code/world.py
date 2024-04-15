@@ -31,6 +31,8 @@ hyper_SSM_Margin = 1
 hyper_decay = 1e-4
 hyper_embedding_dim = 64
 hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
+hyper_CKGAUI_ckg_layers = 3
+hyper_CKGAUI_ui_layers = 3
 
 sys_seed = 2020
 sys_epoch = 0

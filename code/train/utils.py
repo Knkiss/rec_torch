@@ -42,14 +42,19 @@ def sim(z1: torch.Tensor, z2: torch.Tensor):
         return torch.mm(z1, z2.t())
 
 
-def construct_graph(edge, weight):
+def construct_graph(edge, weight, uu_edge=None, uu_weight=None):
     n_users = edge[0].max() + 1
     n_items = edge[1].max() + 1
-
-    index = torch.stack([torch.concat([edge[0], edge[1]+n_users]), torch.concat([edge[1]+n_users, edge[0]])])
-    values = torch.concat([weight, weight])
+    if uu_edge is None:
+        index = torch.stack([torch.concat([edge[0], edge[1] + n_users]),
+                             torch.concat([edge[1] + n_users, edge[0]])])
+        values = torch.concat([weight, weight])
+    else:
+        index = torch.stack([torch.concat([edge[0], edge[1]+n_users, uu_edge[0], uu_edge[1]]),
+                             torch.concat([edge[1]+n_users, edge[0], uu_edge[1], uu_edge[0]])])
+        values = torch.concat([weight, weight, uu_weight, uu_weight])
     g = torch.sparse_coo_tensor(index, values, [n_users+n_items, n_users+n_items]).coalesce()
-    return g
+    return g.detach()
 
 
 def dropout_x(x, keep_prob):
