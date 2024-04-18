@@ -268,6 +268,7 @@ class Manager:
                     self.tensorboard.add_scalars(f'Test/' + metric + '@',
                                                  {str(world.sys_topKs[i]): results[metric][i] for i in
                                                   range(len(world.sys_topKs))}, self.epoch)
+            # results['MAD'] = metrics.MAD_embedding(self.rec_model)
             return results, rating_list
 
     def __close(self):
