@@ -105,6 +105,8 @@ class UIDataset(Dataset):
         # (users,items), bipartite graph
         self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)),
                                       shape=(self.n_user, self.m_item))
+        self.UserUserNet = None
+        self.ItemItemNet = None
         # pre-calculate
         self._allPos = self.getUserPosItems(list(range(self.n_user)))
         self.__testDict = self.__build_test()
@@ -131,7 +133,7 @@ class UIDataset(Dataset):
     def allPos(self):
         return self._allPos
 
-    def getSparseGraph(self):
+    def getSparseGraph(self, include_uuii=False):
         if world.dataset_info_show_enable:
             print("loading adjacency matrix")
         if self.Graph is None:
@@ -149,6 +151,12 @@ class UIDataset(Dataset):
                 R = self.UserItemNet.tolil()
                 adj_mat[:self.n_users, self.n_users:] = R
                 adj_mat[self.n_users:, :self.n_users] = R.T
+                if include_uuii and (self.UserUserNet is not None and self.ItemItemNet is not None):
+                    print('Including UU and II')
+                    uu_mat = self.UserUserNet.tolil()
+                    ii_mat = self.ItemItemNet.tolil()
+                    adj_mat[:self.n_users, :self.n_users] = uu_mat
+                    adj_mat[self.n_users:, self.n_users:] = ii_mat
                 adj_mat = adj_mat.todok()
                 # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
 
@@ -233,7 +241,7 @@ class KGDataset(Dataset):
         kg_graph = coo_matrix((value, (head, tail)), shape=(tail.max() + 1, tail.max() + 1))
         return kg_graph
 
-    def get_kg_dict(self, item_num):
+    def get_kg_dict(self, item_num, start_from_0=True):
         entity_num = world.hyper_KGDataset_entity_num_per_item
         i2es = dict()
         i2rs = dict()
@@ -254,6 +262,8 @@ class KGDataset(Dataset):
             else:
                 i2es[item] = torch.IntTensor([self.entity_count] * entity_num).to(world.device)
                 i2rs[item] = torch.IntTensor([self.relation_count] * entity_num).to(world.device)
+            if not start_from_0:
+                i2es[item] += item_num - 1
         return i2es, i2rs
 
     def generate_kg_data(self):

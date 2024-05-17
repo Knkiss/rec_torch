@@ -45,8 +45,8 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='CKGAUI')
-    # classic: LightGCN、MF
+    parser.add_argument('--model', type=str, default='GraphDA')
+    # classic: LightGCN、MF、GraphDA
     # contrastive: SSM、SimGCL、SGL
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、CKGAUI
@@ -112,7 +112,7 @@ test_verbose_epoch = 1  # 测试间隔epoch
 
 pretrain_input_enable = False  # 使用预训练Emb
 pretrain_output_enable = False  # 保存当前模型Emb
-pretrain_input = 'lightGCN'  # 预训练Emb文件名
+pretrain_input = 'LightGCN'  # 预训练Emb文件名
 
 mail_host = 'smtp.qq.com'
 mail_user = '962443828'
