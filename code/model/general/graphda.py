@@ -23,9 +23,8 @@ class GraphDA(model.AbstractRecModel):
         self.distill_thres = 0.5
         self.uuii_thres = -1.0
 
-        sampled_uuii = self.sample_ui_from_pretrained()
-        self.reset_ui_dataset(sampled_uuii)
-        self.Graph = self.ui_dataset.getSparseGraph(include_uuii=True)
+        self.reset_ui_dataset(self.sample_ui_from_pretrained())
+        self.Graph = self.ui_dataset.getSparseGraph(include_uuii=True, regenerate_not_save=True)
 
     def __get_pretrained_ui_rating(self, users):
         all_users = self.pretrained_embedding_user

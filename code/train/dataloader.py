@@ -133,11 +133,13 @@ class UIDataset(Dataset):
     def allPos(self):
         return self._allPos
 
-    def getSparseGraph(self, include_uuii=False):
+    def getSparseGraph(self, include_uuii=False, regenerate_not_save=False):
         if world.dataset_info_show_enable:
             print("loading adjacency matrix")
-        if self.Graph is None:
+        if regenerate_not_save or self.Graph is None:
             try:
+                if regenerate_not_save:
+                    raise Exception()
                 pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
                 if world.dataset_info_show_enable:
                     print("successfully loaded...")
@@ -151,11 +153,13 @@ class UIDataset(Dataset):
                 R = self.UserItemNet.tolil()
                 adj_mat[:self.n_users, self.n_users:] = R
                 adj_mat[self.n_users:, :self.n_users] = R.T
-                if include_uuii and (self.UserUserNet is not None and self.ItemItemNet is not None):
-                    print('Including UU and II')
+                if include_uuii and self.UserUserNet is not None:
+                    print('Including UU')
                     uu_mat = self.UserUserNet.tolil()
-                    ii_mat = self.ItemItemNet.tolil()
                     adj_mat[:self.n_users, :self.n_users] = uu_mat
+                if include_uuii and self.ItemItemNet is not None:
+                    print('Including II')
+                    ii_mat = self.ItemItemNet.tolil()
                     adj_mat[self.n_users:, self.n_users:] = ii_mat
                 adj_mat = adj_mat.todok()
                 # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
@@ -170,7 +174,8 @@ class UIDataset(Dataset):
                 norm_adj = norm_adj.tocsr()
                 end = time()
                 print(f"costing {end - s}s, saved norm_mat...")
-                sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
+                if not regenerate_not_save:
+                    sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
             self.Graph = utils.convert_sp_mat_to_sp_tensor(norm_adj)
             self.Graph = self.Graph.coalesce().to(world.device)
         return self.Graph
