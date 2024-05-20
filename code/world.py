@@ -45,11 +45,11 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='GraphDA')
+    parser.add_argument('--model', type=str, default='WORK2')
     # classic: LightGCN、MF、GraphDA
     # contrastive: SSM、SimGCL、SGL
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
-    # mine: PCL、KGIC、CKGAUI
+    # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
     parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'

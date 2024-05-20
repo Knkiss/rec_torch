@@ -20,6 +20,7 @@ from model.general.sgl_recbole import SGL_recbole
 from model.GJJ.CGCL import CGCL
 from model.knowledge.kgrec import KGRec
 from model.general.graphda import GraphDA
+from model.mine.work2 import WORK2
 
 
 def get_model_by_name(name):
