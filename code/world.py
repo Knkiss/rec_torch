@@ -105,7 +105,7 @@ PATH_PLOT = join(PATH_OUTPUT, 'plot')
 
 tensorboard_instance = None
 
-early_stop_epoch_cnt = 15  # 早停计数器
+early_stop_epoch_cnt = 25  # 早停计数器
 early_stop_metric = metrics[-1]
 test_start_epoch = 1  # 测试开始epoch
 test_verbose_epoch = 1  # 测试间隔epoch

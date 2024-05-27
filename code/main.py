@@ -330,17 +330,15 @@ class Search:
         para_dict = {}
         world.dataset = parameters[0]
         para_dict['dataset'] = parameters[0]
-        world.hyper_ssl_temp = parameters[1]
-        para_dict['hyper_ssl_temp'] = parameters[1]
-        world.hyper_ssl_reg = parameters[2]
-        para_dict['hyper_ssl_reg'] = parameters[2]
+        # world.hyper_ssl_temp = parameters[1]
+        # para_dict['hyper_ssl_temp'] = parameters[1]
+        # world.hyper_ssl_reg = parameters[2]
+        # para_dict['hyper_ssl_reg'] = parameters[2]
         return para_dict
 
     # Need Change
     def set_parameters_table(self):
-        self.parameter_table = [['lastfm_kg'],
-                                [0.1, 0.15, 0.2, 0.25, 0.3],
-                                [0.01, 0.05, 0.1, 0.2, 0.5]]
+        self.parameter_table = [['bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']]
 
 
 class Timer:

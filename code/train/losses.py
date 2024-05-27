@@ -61,7 +61,7 @@ def loss_SSM_origin(all_users, all_items, users, pos):
     logits = ttl_score - pos_score
     clogits = torch.logsumexp(logits / world.hyper_SSM_Loss_temp, dim=1)
     loss = torch.sum(clogits)
-    return loss
+    return loss * world.hyper_SSM_Regulation
 
 
 def loss_New_1_1(all_users, all_items, users, pos, neg):
