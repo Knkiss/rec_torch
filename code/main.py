@@ -184,7 +184,9 @@ class Manager:
                     if not os.path.exists(world.PATH_PRETRAIN):
                         os.makedirs(world.PATH_PRETRAIN)
                     output = world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.model + '.pretrain'
-                    torch.save(self.rec_model.state_dict(), output)
+                    user_emb, item_emb = self.rec_model.calculate_embedding()
+                    save_emb = {'embedding_user.weight': user_emb, 'embedding_item.weight': item_emb}
+                    torch.save(save_emb, output)
             elif world.early_stop_enable:
                 if world.epoch_result_show_enable:
                     print('\033[0;32m' + str(result) + '\033[0m')
