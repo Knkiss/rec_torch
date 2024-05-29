@@ -154,11 +154,9 @@ class UIDataset(Dataset):
                 adj_mat[:self.n_users, self.n_users:] = R
                 adj_mat[self.n_users:, :self.n_users] = R.T
                 if include_uuii and self.UserUserNet is not None:
-                    print('Including UU')
                     uu_mat = self.UserUserNet.tolil()
                     adj_mat[:self.n_users, :self.n_users] = uu_mat
                 if include_uuii and self.ItemItemNet is not None:
-                    print('Including II')
                     ii_mat = self.ItemItemNet.tolil()
                     adj_mat[self.n_users:, self.n_users:] = ii_mat
                 adj_mat = adj_mat.todok()

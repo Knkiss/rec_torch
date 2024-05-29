@@ -31,8 +31,18 @@ hyper_SSM_Margin = 1
 hyper_decay = 1e-4
 hyper_embedding_dim = 64
 hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
-hyper_CKGAUI_ckg_layers = 3
-hyper_CKGAUI_ui_layers = 3
+
+hyper_WORK2_ckg_layers = 3
+hyper_WORK2_ui_layers = 3
+
+hyper_WORK2_reset_ui_graph = False  # 是否启用图重采样
+hyper_WORK2_reset_ckg_graph = False  # 是否同步修改CKG卷积中的UI关系，仅有UI关系，连接和度可能改变
+hyper_WORK2_resample_mode = 1  # 重采样矩阵的值根据什么预测结果排序 1=ckg-ui  2=ckg
+hyper_WORK2_resample_new_ui_mode = 3  # 重采样矩阵的新得到的UI如何使用 1=dont use 2=replace 3=add
+
+hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
+hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
+hyper_WORK2_SSM_use = True  # 是否使用SSM损失
 
 sys_seed = 2020
 sys_epoch = 0
@@ -112,7 +122,7 @@ test_verbose_epoch = 1  # 测试间隔epoch
 
 pretrain_input_enable = False  # 使用预训练Emb
 pretrain_output_enable = False  # 保存当前模型Emb
-pretrain_input = 'LightGCN'  # 预训练Emb文件名
+pretrain_input = 'WORK2'  # 预训练Emb文件名
 
 mail_host = 'smtp.qq.com'
 mail_user = '962443828'

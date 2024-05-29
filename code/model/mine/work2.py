@@ -194,20 +194,37 @@ class MatrixResample:
         self.n_users = n_users
         self.n_items = n_items
 
-        emb = torch.load(world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.pretrain_input + '.pretrain')
-        self.eu_ui = torch.nn.Embedding.from_pretrained(emb['embedding_user.weight']).weight
-        self.ei_ui = torch.nn.Embedding.from_pretrained(emb['embedding_item.weight']).weight
-
+        use_pretrain = True
         self.sample_batch_size = 100
-        self.distill_userK = 3  # <= 50
-        self.distill_itemK = 3  # <= 50
-        self.distill_uuK = 3
-        self.distill_iiK = 3
-        self.distill_thres = 0.5
-        self.uuii_thres = -1.0
-        self.f = nn.Sigmoid()
+        self.distill_userK = 1  # <= 50
+        self.distill_itemK = 1  # <= 50
+        self.distill_uuK = 4
+        self.distill_iiK = 1
+        self.distill_thres = 0.8
+        self.uuii_thres = 0.8
+        self.mode = world.hyper_WORK2_resample_mode
+        self.new_ui_mode = world.hyper_WORK2_resample_new_ui_mode
 
-    def resample_graph_kg_and_ui(self, eu_ui, ei_ui, eu_ckg, ei_ckg):
+        self.f = nn.Sigmoid()
+        if use_pretrain:
+            emb = torch.load(world.PATH_PRETRAIN + '/' + world.dataset + '_' + world.pretrain_input + '.pretrain')
+            self.eu_ui = torch.nn.Embedding.from_pretrained(emb['embedding_user.weight']).weight
+            self.ei_ui = torch.nn.Embedding.from_pretrained(emb['embedding_item.weight']).weight
+        else:
+            self.eu_ui = None
+            self.ei_ui = None
+
+    def prepare_each_epoch(self, eu=None, ei=None, eu_ckg=None, ei_ckg=None):
+        if eu is not None:
+            self.eu_ui = eu
+        if ei is not None:
+            self.ei_ui = ei
+        sampled_ui = self.__sample_ui_topk(eu_ckg, ei_ckg)
+        self.__reset_ui_dataset(sampled_ui)
+        graph = self.ui_dataset.getSparseGraph(include_uuii=True, regenerate_not_save=True)
+        return graph
+
+    def __sample_ui_topk(self, eu_ckg=None, ei_ckg=None):
         distill_user_row = []
         distill_item_col = []
         distill_value = []
@@ -233,11 +250,18 @@ class MatrixResample:
 
                 for batch_users in utils.minibatch(users, batch_size=u_batch_size):
                     batch_users_gpu = torch.Tensor(batch_users).long().to(world.device)
+                    rating_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu, self.ei_ui)
+                    uu_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu, self.eu_ui)
 
-                    rating_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu,
-                                                           self.ei_ui)
-                    uu_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu,
-                                                       self.eu_ui)
+                    if eu_ckg is not None and ei_ckg is not None:
+                        rating_pred_ckg = self.__get_batch_ratings(eu_ckg, batch_users_gpu, ei_ckg)
+                        uu_pred_ckg = self.__get_batch_ratings(eu_ckg, batch_users_gpu, eu_ckg)
+                        if self.mode == 1:
+                            rating_pred = rating_pred_ckg - rating_pred
+                            uu_pred = uu_pred_ckg - uu_pred
+                        else:
+                            rating_pred = rating_pred_ckg
+                            uu_pred = uu_pred_ckg
 
                     rating_pred = rating_pred.cpu().data.numpy().copy()
                     ind = np.argpartition(rating_pred, -50)[:, -50:]
@@ -264,7 +288,7 @@ class MatrixResample:
                             pred_val = rating_pred[batch_i, eachpred]
                             if self.distill_thres > 0:
                                 if pred_val > self.distill_thres:
-                                    distill_value.append(1)
+                                    distill_value.append(pred_val)
                                 else:
                                     distill_value.append(0)
                             else:
@@ -278,8 +302,8 @@ class MatrixResample:
                             pred_val = uu_pred[batch_i, eachpred]
                             if self.uuii_thres > 0:
                                 if pred_val > self.uuii_thres:
-                                    distill_uu_value.append(1)
-                                    distill_uu_value.append(1)
+                                    distill_uu_value.append(pred_val)
+                                    distill_uu_value.append(pred_val)
                                 else:
                                     distill_uu_value.append(0)
                                     distill_uu_value.append(0)
@@ -323,7 +347,7 @@ class MatrixResample:
                             pred_val = rating_pred[batch_i, eachpred]
                             if self.distill_thres > 0:
                                 if pred_val > self.distill_thres:
-                                    distill_value.append(1)
+                                    distill_value.append(pred_val)
                                 else:
                                     distill_value.append(0)
                             else:
@@ -337,8 +361,8 @@ class MatrixResample:
                             pred_val = ii_pred[batch_i, eachpred]
                             if self.uuii_thres > 0:
                                 if pred_val > self.uuii_thres:
-                                    distill_ii_value.append(1)
-                                    distill_ii_value.append(1)
+                                    distill_ii_value.append(pred_val)
+                                    distill_ii_value.append(pred_val)
                                 else:
                                     distill_ii_value.append(0)
                                     distill_ii_value.append(0)
@@ -348,179 +372,32 @@ class MatrixResample:
 
         return [[distill_user_row, distill_item_col, distill_value], [distill_uu_row, distill_uu_col, distill_uu_value],
                 [distill_ii_row, distill_ii_col, distill_ii_value]]
-
-    def resample_graph(self, eu=None, ei=None):
-        if eu is not None:
-            self.eu_ui = eu
-        if ei is not None:
-            self.ei_ui = ei
-        sampled_ui = self.sample_ui_from_pretrained()
-        self.reset_ui_dataset(sampled_ui)
-        Graph = self.ui_dataset.getSparseGraph(include_uuii=True, regenerate_not_save=True)
-        return Graph
 
     def __get_batch_ratings(self, all_batch_emb, batch, all_emb):
         batch_emb = all_batch_emb[batch.long()]
         ratings = self.f(torch.matmul(batch_emb, all_emb.t()))
         return ratings
 
-    def sample_ui_from_pretrained(self):
-        distill_user_row = []
-        distill_item_col = []
-        distill_value = []
-
-        distill_uu_row = []
-        distill_uu_col = []
-        distill_uu_value = []
-
-        distill_ii_row = []
-        distill_ii_col = []
-        distill_ii_value = []
-
-        u_batch_size = self.sample_batch_size
-
-        if self.distill_userK > 0:
-            with torch.no_grad():
-                users = list(set(self.ui_dataset.trainUser))
-                try:
-                    assert u_batch_size <= len(users) / 10
-                except AssertionError:
-                    raise ValueError(
-                        f"sample_batch_size is too big for this dataset, try a small one {len(users) // 10}")
-
-                for batch_users in utils.minibatch(users, batch_size=u_batch_size):
-                    batch_users_gpu = torch.Tensor(batch_users).long().to(world.device)
-
-                    rating_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu,
-                                                           self.ei_ui)
-                    uu_pred = self.__get_batch_ratings(self.eu_ui, batch_users_gpu,
-                                                       self.eu_ui)
-
-                    rating_pred = rating_pred.cpu().data.numpy().copy()
-                    ind = np.argpartition(rating_pred, -50)[:, -50:]
-                    arr_ind = rating_pred[np.arange(len(rating_pred))[:, None], ind]
-                    arr_ind_argsort = np.argsort(arr_ind)[np.arange(len(rating_pred)), ::-1]
-                    batch_pred_list = ind[np.arange(len(rating_pred))[:, None], arr_ind_argsort]
-
-                    uu_pred = uu_pred.cpu().data.numpy().copy()
-                    uu_ind = np.argpartition(uu_pred, -50)[:, -50:]
-                    uu_arr_ind = uu_pred[np.arange(len(uu_pred))[:, None], uu_ind]
-                    uu_arr_ind_argsort = np.argsort(uu_arr_ind)[np.arange(len(uu_pred)), ::-1]
-                    uu_batch_pred_list = uu_ind[np.arange(len(uu_pred))[:, None], uu_arr_ind_argsort]
-
-                    partial_batch_pred_list = batch_pred_list[:, :self.distill_userK]
-                    uu_partial_batch_pred_list = uu_batch_pred_list[:, :self.distill_uuK]
-
-                    for batch_i in range(partial_batch_pred_list.shape[0]):
-                        uid = batch_users[batch_i]
-                        user_pred = partial_batch_pred_list[batch_i]
-                        uu_user_pred = uu_partial_batch_pred_list[batch_i]
-                        for eachpred in user_pred:
-                            distill_user_row.append(uid)
-                            distill_item_col.append(eachpred)
-                            pred_val = rating_pred[batch_i, eachpred]
-                            if self.distill_thres > 0:
-                                if pred_val > self.distill_thres:
-                                    distill_value.append(1)
-                                else:
-                                    distill_value.append(0)
-                            else:
-                                distill_value.append(pred_val)
-
-                        for eachpred in uu_user_pred:
-                            distill_uu_row.append(uid)
-                            distill_uu_col.append(eachpred)
-                            distill_uu_row.append(eachpred)
-                            distill_uu_col.append(uid)
-                            pred_val = uu_pred[batch_i, eachpred]
-                            if self.uuii_thres > 0:
-                                if pred_val > self.uuii_thres:
-                                    distill_uu_value.append(1)
-                                    distill_uu_value.append(1)
-                                else:
-                                    distill_uu_value.append(0)
-                                    distill_uu_value.append(0)
-                            else:
-                                distill_uu_value.append(pred_val)
-                                distill_uu_value.append(pred_val)
-
-        if self.distill_itemK > 0:
-            with torch.no_grad():
-                items = [i for i in range(self.n_items)]
-                total_batch = len(items) // u_batch_size + 1
-                for batch_items in utils.minibatch(items, batch_size=u_batch_size):
-                    batch_items_gpu = torch.Tensor(batch_items).long().to(world.device)
-
-                    rating_pred = self.__get_batch_ratings(self.ei_ui, batch_items_gpu,
-                                                           self.eu_ui)
-                    ii_pred = self.__get_batch_ratings(self.ei_ui, batch_items_gpu,
-                                                       self.ei_ui)
-
-                    rating_pred = rating_pred.cpu().data.numpy().copy()
-                    ind = np.argpartition(rating_pred, -50)[:, -50:]
-                    arr_ind = rating_pred[np.arange(len(rating_pred))[:, None], ind]
-                    arr_ind_argsort = np.argsort(arr_ind)[np.arange(len(rating_pred)), ::-1]
-                    batch_pred_list = ind[np.arange(len(rating_pred))[:, None], arr_ind_argsort]
-
-                    ii_pred = ii_pred.cpu().data.numpy().copy()
-                    ii_ind = np.argpartition(ii_pred, -50)[:, -50:]
-                    ii_arr_ind = ii_pred[np.arange(len(ii_pred))[:, None], ii_ind]
-                    ii_arr_ind_argsort = np.argsort(ii_arr_ind)[np.arange(len(ii_pred)), ::-1]
-                    ii_batch_pred_list = ii_ind[np.arange(len(ii_pred))[:, None], ii_arr_ind_argsort]
-
-                    partial_batch_pred_list = batch_pred_list[:, :self.distill_itemK]
-                    ii_partial_batch_pred_list = ii_batch_pred_list[:, :self.distill_iiK]
-                    for batch_i in range(partial_batch_pred_list.shape[0]):
-                        iid = batch_items[batch_i]
-                        item_pred = partial_batch_pred_list[batch_i]
-                        ii_item_pred = ii_partial_batch_pred_list[batch_i]
-                        for eachpred in item_pred:
-                            distill_user_row.append(eachpred)
-                            distill_item_col.append(iid)
-                            pred_val = rating_pred[batch_i, eachpred]
-                            if self.distill_thres > 0:
-                                if pred_val > self.distill_thres:
-                                    distill_value.append(1)
-                                else:
-                                    distill_value.append(0)
-                            else:
-                                distill_value.append(pred_val)
-
-                        for eachpred in ii_item_pred:
-                            distill_ii_row.append(eachpred)
-                            distill_ii_col.append(iid)
-                            distill_ii_row.append(eachpred)
-                            distill_ii_col.append(iid)
-                            pred_val = ii_pred[batch_i, eachpred]
-                            if self.uuii_thres > 0:
-                                if pred_val > self.uuii_thres:
-                                    distill_ii_value.append(1)
-                                    distill_ii_value.append(1)
-                                else:
-                                    distill_ii_value.append(0)
-                                    distill_ii_value.append(0)
-                            else:
-                                distill_ii_value.append(pred_val)
-                                distill_ii_value.append(pred_val)
-
-        return [[distill_user_row, distill_item_col, distill_value], [distill_uu_row, distill_uu_col, distill_uu_value],
-                [distill_ii_row, distill_ii_col, distill_ii_value]]
-
-    def reset_ui_dataset(self, newdata):
+    def __reset_ui_dataset(self, newdata):
         [newuidata, newuudata, newiidata] = newdata
-        new_row, new_col, new_val = newuidata
-        self.ui_dataset.UserItemNet = csr_matrix((new_val, (new_row, new_col)),
-                                                 shape=(self.n_users, self.n_items))
+        # new_row, new_col, new_val = newuidata
+        # if self.new_ui_mode == 2:
+        #     self.ui_dataset.UserItemNet = csr_matrix((new_val, (new_row, new_col)),
+        #                                              shape=(self.n_users, self.n_items))
+        # elif self.new_ui_mode == 3:
+        #     new_ui = csr_matrix((new_val, (new_row, new_col)), shape=(self.n_users, self.n_items))
+        #     self.ui_dataset.UserItemNet = self.ui_dataset.UserItemNet + new_ui
 
         new_uu_row, new_uu_col, new_uu_val = newuudata
+        add_uu_net = csr_matrix((new_uu_val, (new_uu_row, new_uu_col)), shape=(self.n_users, self.n_users))
         self.ui_dataset.UserUserNet = csr_matrix((new_uu_val, (new_uu_row, new_uu_col)),
                                                  shape=(self.n_users, self.n_users))
         self.ui_dataset.UserUserNet.setdiag(0)
 
-        new_ii_row, new_ii_col, new_ii_val = newiidata
-        self.ui_dataset.ItemItemNet = csr_matrix((new_ii_val, (new_ii_row, new_ii_col)),
-                                                 shape=(self.n_items, self.n_items))
-        self.ui_dataset.ItemItemNet.setdiag(0)
+        # new_ii_row, new_ii_col, new_ii_val = newiidata
+        # self.ui_dataset.ItemItemNet = csr_matrix((new_ii_val, (new_ii_row, new_ii_col)),
+        #                                          shape=(self.n_items, self.n_items))
+        # self.ui_dataset.ItemItemNet.setdiag(0)
 
 
 class CKGGCN(nn.Module):
@@ -584,12 +461,9 @@ class WORK2(model.AbstractRecModel):
                            self.Graph.indices()[1, :self.Graph.indices()[0].shape[0] // 2] - self.n_users]
         self.inter_edge = torch.stack(self.inter_edge, dim=0)
 
-        head = self.kg_dataset.kg_data['h'].values
-        tail = self.kg_dataset.kg_data['t'].values + head.max() + 1
-        value = self.kg_dataset.kg_data['r'].values + 1
-        self.edge_index = torch.stack([torch.LongTensor(np.concatenate([head, tail])),
-                                       torch.LongTensor(np.concatenate([tail, head]))]).to(world.device)
-        self.edge_type = torch.LongTensor(np.concatenate([value, value + max(value)])).to(world.device)
+        self.Graph_KG = self.kg_dataset.get_kg_graph(1, True)
+        self.edge_type = torch.LongTensor(self.Graph_KG.data).to(world.device)
+        self.edge_index = torch.LongTensor(np.stack((self.Graph_KG.row, self.Graph_KG.col))).to(world.device)
 
         self.ui_gcn = model.LightGCN()
         self.ckg_gcn = CKGGCN(dims=self.embedding_dim, n_relations=self.n_relations)
@@ -597,50 +471,74 @@ class WORK2(model.AbstractRecModel):
         self.ui_layers = 3
         self.ckg_layers = 3
 
-        self.Graph_resample = None
+        self.matrix_resample = MatrixResample(self.ui_dataset, self.n_users, self.n_items)
+        self.Graph_resample = None  # Prepare each epoch
 
-    def prepare_each_epoch(self):
-        eu, ei, ee, g0 = (self.embedding_user.weight,
-                          self.embedding_item.weight,
-                          self.embedding_entity.weight,
-                          self.Graph)
-        zu_ui, zi_ui = self.ui_gcn(eu, ei, g0)
-        zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
-                                      eu,
-                                      torch.concat([ei, ee]),
-                                      self.inter_edge,
-                                      self.inter_edge_w,
-                                      self.edge_index,
-                                      self.edge_type)
-        print(1)
+        self.Graph_resample = self.matrix_resample.prepare_each_epoch()
+    # def prepare_each_epoch(self):
+    #     if world.hyper_WORK2_reset_ui_graph:
+    #         eu, ei, ee, g0 = (self.embedding_user.weight,
+    #                           self.embedding_item.weight,
+    #                           self.embedding_entity.weight,
+    #                           self.Graph)
+    #         zu_ui, zi_ui = self.ui_gcn(eu, ei, g0)
+    #         zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
+    #                                       eu,
+    #                                       torch.concat([ei, ee]),
+    #                                       self.inter_edge,
+    #                                       self.inter_edge_w,
+    #                                       self.edge_index,
+    #                                       self.edge_type)
+    #         self.Graph_resample = self.matrix_resample.prepare_each_epoch(zu_ui, zi_ui, zu_ckg, zi_ckg[:self.n_items])
+    #     else:
+    #         self.Graph_resample = self.Graph
+    #
+    #     if world.hyper_WORK2_reset_ckg_graph:
+    #         self.inter_edge_w = self.Graph_resample.values()[:self.Graph.values().shape[0] // 2]
+    #         self.inter_edge = [self.Graph_resample.indices()[0, :self.Graph.indices()[0].shape[0] // 2],
+    #                            self.Graph_resample.indices()[1, :self.Graph.indices()[0].shape[0] // 2] - self.n_users]
+    #         self.inter_edge = torch.stack(self.inter_edge, dim=0)
 
     def calculate_embedding(self):
-        # return self.ui_gcn(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
-        return self.ckg_gcn(self.ckg_layers,
-                            self.embedding_user.weight,
-                            torch.concat([self.embedding_item.weight, self.embedding_entity.weight]),
-                            self.inter_edge,
-                            self.inter_edge_w,
-                            self.edge_index,
-                            self.edge_type)
-
-    def calculate_loss(self, users, pos, neg):
-        eu, ei, g0 = self.embedding_user.weight, self.embedding_item.weight, self.Graph
-        # zu_g0, zi_g0 = self.ui_gcn(eu, ei, g0)
-
-        zu_g0, zi_g0 = self.ckg_gcn(self.ckg_layers,
+        eu, ei = self.embedding_user.weight, self.embedding_item.weight
+        zu_g0, zi_g0 = self.ui_gcn(eu, ei, self.Graph_resample)
+        zu_g1, zi_g1 = self.ckg_gcn(self.ckg_layers,
                                     self.embedding_user.weight,
                                     torch.concat([self.embedding_item.weight, self.embedding_entity.weight]),
                                     self.inter_edge,
                                     self.inter_edge_w,
                                     self.edge_index,
                                     self.edge_type)
+        if self.training:
+            return zu_g0 + zu_g1, zi_g0 + zi_g1[:self.n_items], zu_g0, zu_g1, zi_g0, zi_g1[:self.n_items]
+        else:
+            if world.hyper_WORK2_BPR_mode == 1:
+                return zu_g0, zi_g0
+            elif world.hyper_WORK2_BPR_mode == 2:
+                return zu_g1, zi_g1
+            else:
+                return zu_g0 + zu_g1, zi_g0 + zi_g1[:self.n_items]
+
+    def calculate_loss(self, users, pos, neg):
+        eu, ei, g0 = self.embedding_user.weight, self.embedding_item.weight, self.Graph
+        zu, zi, zu_g0, zu_g1, zi_g0, zi_g1 = self.calculate_embedding()
 
         loss = dict()
-        loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_g0, zi_g0, users, pos, neg)
+        if world.hyper_WORK2_BPR_mode == 1:
+            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_g0, zi_g0, users, pos, neg)
+        elif world.hyper_WORK2_BPR_mode == 2:
+            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_g1, zi_g1, users, pos, neg)
+        else:
+            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu, zi, users, pos, neg)
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(eu, ei, users, pos, neg)
 
-        # loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
-        # loss[losses.Loss.SSL.value] += losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
-        # loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0 + zu_g1, zi_g0 + zi_g1, users, pos)
+        if not world.hyper_WORK2_SSM_use:
+            return loss
+
+        if world.hyper_WORK2_SSM_mode == 1:
+            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
+        elif world.hyper_WORK2_SSM_mode == 2:
+            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
+        else:
+            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu, zi, users, pos)
         return loss
