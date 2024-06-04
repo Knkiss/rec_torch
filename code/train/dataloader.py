@@ -113,6 +113,8 @@ class UIDataset(Dataset):
         if world.dataset_info_show_enable:
             print(f"{world.dataset} is ready to go")
 
+        self.D_matrix = None
+
     @property
     def n_users(self):
         return self.n_user
@@ -133,7 +135,7 @@ class UIDataset(Dataset):
     def allPos(self):
         return self._allPos
 
-    def getSparseGraph(self, include_uuii=False, regenerate_not_save=False):
+    def getSparseGraph(self, include_uuii=False, regenerate_not_save=False, regenerate_d=False):
         if world.dataset_info_show_enable:
             print("loading adjacency matrix")
         if regenerate_not_save or self.Graph is None:
@@ -162,11 +164,14 @@ class UIDataset(Dataset):
                 adj_mat = adj_mat.todok()
                 # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
 
-                rowsum = np.array(adj_mat.sum(axis=1))
-                d_inv = np.power(rowsum, -0.5).flatten()
-                d_inv[np.isinf(d_inv)] = 0.
-                d_mat = sp.diags(d_inv)
+                if regenerate_d or self.D_matrix is None:
+                    rowsum = np.array(adj_mat.sum(axis=1))
+                    d_inv = np.power(rowsum, -0.5).flatten()
+                    d_inv[np.isinf(d_inv)] = 0.
+                    d_mat = sp.diags(d_inv)
+                    self.D_matrix = d_mat
 
+                d_mat = self.D_matrix
                 norm_adj = d_mat.dot(adj_mat)
                 norm_adj = norm_adj.dot(d_mat)
                 norm_adj = norm_adj.tocsr()

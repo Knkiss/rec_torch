@@ -35,10 +35,7 @@ hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
 hyper_WORK2_ckg_layers = 3
 hyper_WORK2_ui_layers = 3
 
-hyper_WORK2_reset_ui_graph = False  # 是否启用图重采样
-hyper_WORK2_reset_ckg_graph = False  # 是否同步修改CKG卷积中的UI关系，仅有UI关系，连接和度可能改变
-hyper_WORK2_resample_mode = 1  # 重采样矩阵的值根据什么预测结果排序 1=ckg-ui  2=ckg
-hyper_WORK2_resample_new_ui_mode = 3  # 重采样矩阵的新得到的UI如何使用 1=dont use 2=replace 3=add
+hyper_WORK2_reset_ui_graph = True  # 是否启用图重采样
 
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
