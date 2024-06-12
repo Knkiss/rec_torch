@@ -35,11 +35,12 @@ hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
 hyper_WORK2_ckg_layers = 3
 hyper_WORK2_ui_layers = 3
 
-hyper_WORK2_reset_ui_graph = True  # 是否启用图重采样
+hyper_WORK2_reset_ui_graph = False  # 是否启用图重采样
 
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_use = True  # 是否使用SSM损失
+hyper_WORK2_KD_use = False  # 是否使用KD损失
 
 sys_seed = 2020
 sys_epoch = 0
@@ -58,7 +59,7 @@ def parse_args():
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='lastfm_kg')
+    parser.add_argument('--dataset', type=str, default='amazonbook')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'

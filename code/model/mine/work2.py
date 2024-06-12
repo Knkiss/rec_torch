@@ -15,6 +15,7 @@ import world
 from train import losses, utils, dataloader
 from scipy.sparse import csr_matrix
 from torch.utils.data.dataloader import default_collate
+from train.decorator import count_cpu_once
 
 
 # class MatrixRebuild(nn.Module):
@@ -426,26 +427,28 @@ class CKGGCN(nn.Module):
         self.d_k = dims // self.n_heads
 
     def _agg_layer(self, user_emb, entity_emb, edge_index, edge_type, inter_edge, inter_edge_w):
-        n_entities = entity_emb.shape[0]
         head, tail = edge_index
+        head_emb = entity_emb[head]
+        tail_emb = entity_emb[tail]
 
         # attention from entity to item/entity
-        query = (entity_emb[head] @ self.W_Q).view(-1, self.n_heads, self.d_k)
-        key = (entity_emb[tail] @ self.W_Q).view(-1, self.n_heads, self.d_k)
+        query = (head_emb @ self.W_Q).view(-1, self.n_heads, self.d_k)
+        key = (tail_emb @ self.W_Q).view(-1, self.n_heads, self.d_k)
         key = key * self.relation_emb[edge_type - 1].view(-1, self.n_heads, self.d_k)
         edge_attn_score = (query * key).sum(dim=-1) / math.sqrt(self.d_k)
         edge_attn_score = scatter_softmax(edge_attn_score, head)
         relation_emb = self.relation_emb[edge_type - 1]
-        neigh_relation_emb = entity_emb[tail] * relation_emb  # [-1, channel]
+        neigh_relation_emb = tail_emb * relation_emb  # [-1, channel]
         value = neigh_relation_emb.view(-1, self.n_heads, self.d_k)
         entity_agg = value * edge_attn_score.view(-1, self.n_heads, 1)
         entity_agg = entity_agg.view(-1, self.n_heads * self.d_k)
-        entity_agg = scatter_sum(src=entity_agg, index=head, dim_size=n_entities, dim=0)
+        entity_agg_res = torch.zeros_like(entity_emb)
+        entity_agg = entity_agg_res.index_add_(0, head, entity_agg)
         entity_agg = F.normalize(entity_agg)
 
         item_agg = inter_edge_w.unsqueeze(-1) * entity_emb[inter_edge[1, :]]
-        user_agg = scatter_sum(src=item_agg, index=inter_edge[0, :], dim_size=user_emb.shape[0], dim=0)
-
+        user_agg = torch.zeros_like(user_emb)
+        user_agg = user_agg.index_add_(0, inter_edge[0, :], item_agg)
         return entity_agg, user_agg
 
     def forward(self, layers_num, user_emb, entity_emb, inter_edge, inter_edge_w, edge_index, edge_type):
@@ -543,15 +546,17 @@ class WORK2(model.AbstractRecModel):
                                     self.inter_edge_w,
                                     self.edge_index,
                                     self.edge_type)
+        zi_g1 = zi_g1[:self.n_items]
+
         if self.training:
-            return zu_g0 + zu_g1, zi_g0 + zi_g1[:self.n_items], zu_g0, zu_g1, zi_g0, zi_g1[:self.n_items]
+            return zu_g0 + zu_g1, zi_g0 + zi_g1, zu_g0, zu_g1, zi_g0, zi_g1
         else:
             if world.hyper_WORK2_BPR_mode == 1:
                 return zu_g0, zi_g0
             elif world.hyper_WORK2_BPR_mode == 2:
                 return zu_g1, zi_g1
             else:
-                return zu_g0 + zu_g1, zi_g0 + zi_g1[:self.n_items]
+                return zu_g0 + zu_g1, zi_g0 + zi_g1
 
     def calculate_loss(self, users, pos, neg):
         eu, ei, g0 = self.embedding_user.weight, self.embedding_item.weight, self.Graph
@@ -575,6 +580,9 @@ class WORK2(model.AbstractRecModel):
             loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
         else:
             loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu, zi, users, pos)
+
+        if not world.hyper_WORK2_KD_use:
+            return loss
 
         kd_loss_type = 'A_norm'  # A_norm、A_MSE、II_MSE
         if kd_loss_type == 'A_norm':
