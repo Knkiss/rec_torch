@@ -3,19 +3,16 @@ import math
 import torch
 import copy
 import numpy as np
-import torch.nn as nn
-from torch.distributions import RelaxedBernoulli
 import scipy.sparse as sp
+import torch.nn as nn
+from scipy.sparse import coo_matrix
 import torch.nn.functional as F
-from torch_scatter import scatter_sum
 from torch_geometric.utils import softmax as scatter_softmax
 
 import model
 import world
 from train import losses, utils, dataloader
 from scipy.sparse import csr_matrix
-from torch.utils.data.dataloader import default_collate
-from train.decorator import count_cpu_once
 
 
 # class MatrixRebuild(nn.Module):
@@ -189,21 +186,21 @@ class MatrixResample:
     根据输入的预训练emb，采样得到一个包含uuii的graph，不包含噪声
     """
 
-    def __init__(self, ui_dataset, n_users, n_items):
+    def __init__(self, ui_dataset, kg_graph, n_users, n_items, n_entities):
         super().__init__()
         self.ui_dataset = copy.deepcopy(ui_dataset)
         self.n_users = n_users
         self.n_items = n_items
 
-        use_pretrain = True
+        use_pretrain = False  # set to parameters
         self.sample_batch_size = 100
-        self.distill_userK = 0  # <= 50
-        self.distill_itemK = 0  # <= 50
-        self.distill_uuK = 5  # 5 with 0.8 get best
-        self.distill_iiK = 0
-        self.distill_thres = 0.6
+        self.distill_userK = world.WORK2_sample_uiK  # <= 50
+        self.distill_itemK = world.WORK2_sample_iuK  # <= 50
+        self.distill_uuK = world.WORK2_sample_uuK  # 5 with 0.8 get best
+        self.distill_iiK = world.WORK2_sample_iiK
+        self.distill_thres = 0.8
         self.uu_gate = 0.8
-        self.ii_gate = 0.95
+        self.ii_gate = 0.8
         self.mode = 1  # 重采样矩阵的值根据什么预测结果排序 1=ckg-ui  2=ckg
         self.new_ui_mode = 3  # 重采样矩阵的新得到的UI如何使用 1=dont use 2=replace 3=add
 
@@ -216,15 +213,80 @@ class MatrixResample:
             self.eu_ui = None
             self.ei_ui = None
 
-    def prepare_each_epoch(self, eu=None, ei=None, eu_ckg=None, ei_ckg=None):
-        if eu is not None:
-            self.eu_ui = eu
-        if ei is not None:
-            self.ei_ui = ei
-        sampled_ui = self.__sample_ui_topk(eu_ckg, ei_ckg)
+        self.ii_matrix = None
+        self.uu_matrix = None
+        self.prepare_init(kg_graph, n_items, n_entities)
+
+    def prepare_init(self, kg_graph, n_items, n_entities):
+        # 根据kg图或者ui图，构造确定性的二阶ii关系
+
+        construct_mode = 3  # world设置超参数
+        if construct_mode == 1:
+            print("从所有ie关系中构建ii二阶关系")  # 得到的ii二阶关系非常少
+            row = kg_graph.row
+            col = kg_graph.col
+            data = kg_graph.data
+            mask = (row < n_items) & (col >= n_items)
+            ie_matrix = coo_matrix((np.ones_like(data[mask]), (row[mask], col[mask] - n_items)),
+                                  (n_items, n_entities)).tocsr()
+            self.ii_matrix = ie_matrix.dot(ie_matrix.transpose()).tocoo()
+            self.ii_matrix.data = np.ones_like(self.ii_matrix.data, dtype=np.float32)  # 5195595个二阶ii关系，原矩阵为5508409
+        elif construct_mode == 2:
+            print("从单个ie关系中构建ii二阶关系后融合")
+            row = kg_graph.row
+            col = kg_graph.col
+            data = kg_graph.data
+            start_r, end_r = data.min(), data.max()
+            ii_matrices = []
+            for r in range(start_r, end_r+1):
+                mask = (row < n_items) & (col >= n_items) & (data == r)
+                ie_matrix = coo_matrix((np.ones_like(data[mask]), (row[mask], col[mask] - n_items)),
+                                      (n_items, n_entities)).tocsr()
+                ii_matrix = ie_matrix.dot(ie_matrix.transpose())
+                ii_matrix.data = np.ones_like(ii_matrix.data, dtype=np.float32)
+                ii_matrices.append(ii_matrix)
+            self.ii_matrix = sum(ii_matrices)  # 计算结果与所有relation计算的一致
+        elif construct_mode == 3:
+            print("从ui关系中计算二阶ii关系和二阶uu关系")
+            self.uu_matrix = self.ui_dataset.UserItemNet.dot(self.ui_dataset.UserItemNet.transpose()).tocoo()
+            self.ii_matrix = self.ui_dataset.UserItemNet.transpose().dot(self.ui_dataset.UserItemNet).tocoo()
+        else:
+            raise NotImplementedError("错误的construct_mode设置")
+
+        rowsum = np.array(self.ii_matrix.sum(1))
+        d_inv = np.power(rowsum, -0.5).flatten()
+        d_inv[np.isinf(d_inv)] = 0.
+
+        # d_mat = sp.diags(d_inv)
+        # norm_adj = d_mat.dot(self.ii_matrix)
+        # norm_adj = norm_adj.dot(d_mat)
+        # ii_norm_adj = norm_adj.tocsr()
+        # self.ii_graph = utils.convert_sp_mat_to_sp_tensor(ii_norm_adj).coalesce().to(world.device)
+
+        d_mat_inv = sp.diags(d_inv)
+        ii_mean_adj = d_mat_inv.dot(self.ii_matrix)
+        self.ii_graph = utils.convert_sp_mat_to_sp_tensor(ii_mean_adj).coalesce().to(world.device)
+
+    def prepare_init_from_pretrain(self):
+        sampled_ui = self.__sample_ui_topk()
         self.__reset_ui_dataset(sampled_ui)
         graph = self.ui_dataset.getSparseGraph(include_uuii=True, regenerate_not_save=True, regenerate_d=False)
         return graph
+
+    # def prepare_each_epoch(self, eu_ckg, ei_ckg):
+    #     if self.uu_matrix is not None:
+    #         pass
+    #
+    #     ei_ckg_gcn = (torch.matmul(self.ii_graph, ei_ckg) + ei_ckg) / 2
+    #     a = ei_ckg.cpu().detach().numpy()
+    #     b = ei_ckg_gcn.cpu().detach().numpy()
+    #
+    #     ei_ckg_score = F.cosine_similarity(ei_ckg.unsqueeze(dim=0), ei_ckg.unsqueeze(dim=1), dim=2)
+    #     ei_ckg_gcn_score = F.cosine_similarity(ei_ckg_gcn.unsqueeze(dim=0), ei_ckg_gcn.unsqueeze(dim=1), dim=2)
+    #     a_score = ei_ckg_score.cpu().detach().numpy()
+    #     b_score = ei_ckg_gcn_score.cpu().detach().numpy()
+    #     print(1)
+
 
     def __sample_ui_topk(self, eu_ckg=None, ei_ckg=None):
         distill_user_row = []
@@ -376,7 +438,7 @@ class MatrixResample:
                 [distill_ii_row, distill_ii_col, distill_ii_value]]
 
     def __get_batch_ratings(self, all_batch_emb, batch, all_emb):
-        cosine_or_sigmoid = 1  # TODO set to hyperparameter
+        cosine_or_sigmoid = 1
         if cosine_or_sigmoid == 1:
             all_batch_emb = F.normalize(all_batch_emb, dim=1)
             all_emb = F.normalize(all_emb, dim=1)
@@ -391,7 +453,6 @@ class MatrixResample:
         [newuidata, newuudata, newiidata] = newdata
         new_row, new_col, new_val = newuidata
         add_ui_net = csr_matrix((new_val, (new_row, new_col)), shape=(self.n_users, self.n_items))
-        add_ui_net[add_ui_net > 1] = 1
         add_ui_net.eliminate_zeros()
         if self.new_ui_mode == 2:
             self.ui_dataset.UserItemNet = add_ui_net
@@ -489,52 +550,44 @@ class WORK2(model.AbstractRecModel):
         self.ui_layers = 3
         self.ckg_layers = 3
 
-        self.matrix_resample = MatrixResample(self.ui_dataset, self.n_users, self.n_items)
+        # self.matrix_resample = MatrixResample(self.ui_dataset, self.Graph_KG, self.n_users, self.n_items, self.num_entities)
         self.Graph_resample = self.Graph  # Prepare each epoch
 
         # 先使用性能最佳的预训练emb作一次图采样处理，以分析讨论的三个原因. 此处记录实验的部分性能
 
-        if world.hyper_WORK2_reset_ui_graph:
-            self.Graph_resample = self.matrix_resample.prepare_each_epoch()
+        # if world.hyper_WORK2_reset_ui_graph:
+        #     self.Graph_resample = self.matrix_resample.prepare_init_from_pretrain()
 
          # 从Graph_KG中找出连接关系中包含1的items
-        k_relation_items_index = []
-        have_relation_items_index = []
-        for i in range(1, self.n_relations):
-            k_relation_items_index.append(
-                np.unique(self.Graph_KG.row[(self.Graph_KG.data == i) & (self.Graph_KG.row < self.n_items)]))
-        for i in k_relation_items_index:
-            have_relation_items_index.extend(i)
-        have_relation_items_index = np.unique(have_relation_items_index)
-        print('INFO: items num no relation:', self.n_items - len(have_relation_items_index))
-        print('INFO: Finish Calculate')
-        self.k_relation_items_index_tensor = []
-        for i in k_relation_items_index:
-            self.k_relation_items_index_tensor.append(torch.LongTensor(i))
+        # k_relation_items_index = []
+        # have_relation_items_index = []
+        # for i in range(1, self.n_relations):
+        #     k_relation_items_index.append(
+        #         np.unique(self.Graph_KG.row[(self.Graph_KG.data == i) & (self.Graph_KG.row < self.n_items)]))
+        # for i in k_relation_items_index:
+        #     have_relation_items_index.extend(i)
+        # have_relation_items_index = np.unique(have_relation_items_index)
+        # print('INFO: items num no relation:', self.n_items - len(have_relation_items_index))
+        # print('INFO: Finish Calculate')
+        # self.k_relation_items_index_tensor = []
+        # for i in k_relation_items_index:
+        #     self.k_relation_items_index_tensor.append(torch.LongTensor(i))
 
     # def prepare_each_epoch(self):
-    #     if world.hyper_WORK2_reset_ui_graph:
-    #         eu, ei, ee, g0 = (self.embedding_user.weight,
-    #                           self.embedding_item.weight,
-    #                           self.embedding_entity.weight,
-    #                           self.Graph)
-    #         zu_ui, zi_ui = self.ui_gcn(eu, ei, g0)
-    #         zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
-    #                                       eu,
-    #                                       torch.concat([ei, ee]),
-    #                                       self.inter_edge,
-    #                                       self.inter_edge_w,
-    #                                       self.edge_index,
-    #                                       self.edge_type)
-    #         self.Graph_resample = self.matrix_resample.prepare_each_epoch(zu_ui, zi_ui, zu_ckg, zi_ckg[:self.n_items])
-    #     else:
-    #         self.Graph_resample = self.Graph
+    #     eu, ei, ee, g0 = (self.embedding_user.weight,
+    #                       self.embedding_item.weight,
+    #                       self.embedding_entity.weight,
+    #                       self.Graph)
+    #     zu_ui, zi_ui = self.ui_gcn(eu, ei, g0)
+    #     zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
+    #                                   eu,
+    #                                   torch.concat([ei, ee]),
+    #                                   self.inter_edge,
+    #                                   self.inter_edge_w,
+    #                                   self.edge_index,
+    #                                   self.edge_type)
     #
-    #     if world.hyper_WORK2_reset_ckg_graph:
-    #         self.inter_edge_w = self.Graph_resample.values()[:self.Graph.values().shape[0] // 2]
-    #         self.inter_edge = [self.Graph_resample.indices()[0, :self.Graph.indices()[0].shape[0] // 2],
-    #                            self.Graph_resample.indices()[1, :self.Graph.indices()[0].shape[0] // 2] - self.n_users]
-    #         self.inter_edge = torch.stack(self.inter_edge, dim=0)
+    #     self.matrix_resample.prepare_each_epoch(zu_ckg, zi_ckg[:self.n_items])
 
     def calculate_embedding(self):
         eu, ei = self.embedding_user.weight, self.embedding_item.weight

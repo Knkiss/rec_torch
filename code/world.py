@@ -35,8 +35,6 @@ hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
 hyper_WORK2_ckg_layers = 3
 hyper_WORK2_ui_layers = 3
 
-hyper_WORK2_reset_ui_graph = False  # 是否启用图重采样
-
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_use = True  # 是否使用SSM损失
@@ -59,7 +57,7 @@ def parse_args():
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='amazonbook')
+    parser.add_argument('--dataset', type=str, default='movielens1m_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
@@ -76,12 +74,23 @@ def parse_args():
     parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
-    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
+    parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
     parser.add_argument('--time_calculate', type=bool, default=False)  # 是否开启时间统计
+
+    parser.add_argument('--uuK', type=int, default=0)
+    parser.add_argument('--iiK', type=int, default=0)
+    parser.add_argument('--uiK', type=int, default=0)
+    parser.add_argument('--iuK', type=int, default=0)
+
     return parser.parse_args()
 
 
 args = parse_args()
+WORK2_sample_uuK = args.uuK
+WORK2_sample_iiK = args.iiK
+WORK2_sample_uiK = args.uiK
+WORK2_sample_iuK = args.iuK
+hyper_WORK2_reset_ui_graph = (WORK2_sample_uuK + WORK2_sample_iiK + WORK2_sample_uiK + WORK2_sample_iuK) > 0
 model = args.model
 dataset = args.dataset
 metrics = args.metrics
@@ -120,7 +129,7 @@ test_verbose_epoch = 1  # 测试间隔epoch
 
 pretrain_input_enable = False  # 使用预训练Emb
 pretrain_output_enable = False  # 保存当前模型Emb
-pretrain_input = 'WORK2'  # 预训练Emb文件名
+pretrain_input = 'LightGCN'  # 预训练Emb文件名
 
 mail_host = 'smtp.qq.com'
 mail_user = '962443828'
