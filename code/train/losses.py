@@ -1,3 +1,4 @@
+import random
 from enum import Enum
 
 import torch
@@ -240,18 +241,50 @@ def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
     return loss
 
 
-def loss_kd_cluster_ii_graph(from_emb, to_emb):
+# mode = 1, 2
+def loss_kd_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch_item_neg=None):
+    if batch_item_neg is None:
+        t = from_item_emb[batch_item.long()]
+        s = to_item_emb[batch_item.long()]
+    else:
+        t = torch.concat([from_item_emb[batch_item.long()], from_item_emb[batch_item_neg.long()]], dim=0)
+        s = torch.concat([to_item_emb[batch_item.long()], to_item_emb[batch_item_neg.long()]], dim=0)
+
+    t_dist = torch.cosine_similarity(t.unsqueeze(dim=0), t.unsqueeze(dim=1), dim=2)
+    s_dist = torch.cosine_similarity(s.unsqueeze(dim=0), s.unsqueeze(dim=1), dim=2)
+
+    kd_loss = torch.sum((t_dist - s_dist) ** 2) * world.hyper_KD_regulation
+    return kd_loss
+
+
+# mode = 3, 4
+def loss_kd_cluster_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch=True):
+    if batch:
+        from_item_emb = from_item_emb[batch_item.long()]
+        to_item_emb = to_item_emb[batch_item.long()]
     cluster_num = world.hyper_WORK2_cluster_num
-    source_emb_np = from_emb.cpu().detach().numpy()
-    kmeans = KMeans(n_clusters=cluster_num, random_state=0, n_init="auto")
+    source_emb_np = from_item_emb.cpu().detach().numpy()
+    kmeans = KMeans(n_clusters=cluster_num, random_state=random.randint(0, 10000), n_init="auto")
     kmeans.fit(source_emb_np)
     idx = torch.LongTensor(kmeans.labels_).to(world.device)
 
-    from_cluster = scatter_mean(src=from_emb, index=idx, dim_size=cluster_num, dim=0)
-    to_cluster = scatter_mean(src=to_emb, index=idx, dim_size=cluster_num, dim=0)
+    from_cluster = scatter_mean(src=from_item_emb, index=idx, dim_size=cluster_num, dim=0)
+    to_cluster = scatter_mean(src=to_item_emb, index=idx, dim_size=cluster_num, dim=0)
 
     # 构造kmeans后的ii中心矩阵
     ckg_constructed_graph = torch.cosine_similarity(from_cluster.unsqueeze(dim=0), from_cluster.unsqueeze(dim=1), 2)
     ui_constructed_graph = torch.cosine_similarity(to_cluster.unsqueeze(dim=0), to_cluster.unsqueeze(dim=1), 2)
     kd_loss = torch.sum((ckg_constructed_graph - ui_constructed_graph) ** 2) * world.hyper_KD_regulation
+    return kd_loss
+
+
+# mode = 5
+def loss_kd_A_graph_batch(from_user_emb, to_user_emb, from_item_emb, to_item_emb, batch_user, batch_item):
+    t = torch.cat([from_user_emb[batch_user.long()], from_item_emb[batch_item.long()]], 0)
+    s = torch.cat([to_user_emb[batch_user.long()], to_item_emb[batch_item.long()]], 0)
+
+    t_dist = torch.cosine_similarity(t.unsqueeze(dim=0), t.unsqueeze(dim=1), dim=2)
+    s_dist = torch.cosine_similarity(s.unsqueeze(dim=0), s.unsqueeze(dim=1), dim=2)
+
+    kd_loss = torch.sum((t_dist - s_dist) ** 2) * world.hyper_KD_regulation
     return kd_loss

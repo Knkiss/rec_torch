@@ -625,20 +625,29 @@ class WORK2(model.AbstractRecModel):
             loss[losses.Loss.BPR.value] = losses.loss_BPR(zu, zi, users, pos, neg)
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(eu, ei, users, pos, neg)
 
-        if not world.hyper_WORK2_SSM_use:
-            return loss
+        if world.hyper_WORK2_SSM_mode > 0:
+            if world.hyper_WORK2_SSM_mode == 1:
+                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
+            elif world.hyper_WORK2_SSM_mode == 2:
+                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
+            elif world.hyper_WORK2_SSM_mode == 3:
+                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu, zi, users, pos)
+            else:
+                raise NotImplementedError("world.hyper_WORK2_SSM_mode")
 
-        if world.hyper_WORK2_SSM_mode == 1:
-            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
-        elif world.hyper_WORK2_SSM_mode == 2:
-            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
-        else:
-            loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu, zi, users, pos)
-
-        if not world.hyper_WORK2_KD_use:
-            return loss
-
-        loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph(zi_g1, zi_g0)
+        if world.hyper_WORK2_KD_mode > 0:
+            if world.hyper_WORK2_KD_mode == 1:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos)
+            elif world.hyper_WORK2_KD_mode == 2:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos, neg)
+            elif world.hyper_WORK2_KD_mode == 3:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos, batch=True)
+            elif world.hyper_WORK2_KD_mode == 4:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos, batch=False)
+            elif world.hyper_WORK2_KD_mode == 5:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_A_graph_batch(zu_g1, zu_g0, zi_g1, zi_g0, users, pos)
+            else:
+                raise NotImplementedError("world.hyper_WORK2_KD_mode")
 
         # kd_loss_type = 'A_norm'  # A_norm、A_MSE、II_MSE
         # if kd_loss_type == 'A_norm':

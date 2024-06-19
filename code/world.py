@@ -36,9 +36,8 @@ hyper_WORK2_ckg_layers = 3
 hyper_WORK2_ui_layers = 3
 
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
-hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
-hyper_WORK2_SSM_use = True  # 是否使用SSM损失
-hyper_WORK2_KD_use = True  # 是否使用KD损失
+hyper_WORK2_SSM_mode = 2  # enable>0 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
+hyper_WORK2_KD_mode = 1  # enable>0 使用哪种蒸馏方式
 
 sys_seed = 2020
 sys_epoch = 0
@@ -83,7 +82,8 @@ def parse_args():
     parser.add_argument('--iuK', type=int, default=0)
 
     parser.add_argument('--hyper1', type=int, default=10)
-    parser.add_argument('--hyper2', type=float, default=1)
+    parser.add_argument('--hyper2', type=float, default=0.001)
+    parser.add_argument('--hyper3', type=int, default=0)  # KD mode
 
     return parser.parse_args()
 
