@@ -38,7 +38,7 @@ hyper_WORK2_ui_layers = 3
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_use = True  # 是否使用SSM损失
-hyper_WORK2_KD_use = False  # 是否使用KD损失
+hyper_WORK2_KD_use = True  # 是否使用KD损失
 
 sys_seed = 2020
 sys_epoch = 0
@@ -57,7 +57,7 @@ def parse_args():
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='movielens1m_kg')
+    parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
@@ -82,6 +82,9 @@ def parse_args():
     parser.add_argument('--uiK', type=int, default=0)
     parser.add_argument('--iuK', type=int, default=0)
 
+    parser.add_argument('--hyper1', type=int, default=10)
+    parser.add_argument('--hyper2', type=float, default=1)
+
     return parser.parse_args()
 
 
@@ -90,6 +93,8 @@ WORK2_sample_uuK = args.uuK
 WORK2_sample_iiK = args.iiK
 WORK2_sample_uiK = args.uiK
 WORK2_sample_iuK = args.iuK
+hyper_WORK2_cluster_num = args.hyper1
+hyper_KD_regulation = args.hyper2
 hyper_WORK2_reset_ui_graph = (WORK2_sample_uuK + WORK2_sample_iiK + WORK2_sample_uiK + WORK2_sample_iuK) > 0
 model = args.model
 dataset = args.dataset
@@ -163,7 +168,7 @@ if model == 'KGIN':
 def print_arguments():
     print('\n----------------------------------- Settings -----------------------------------')
     a = globals().copy()
-    a = sorted(a.items(), key=lambda d:d[0])
+    a = sorted(a.items(), key=lambda d: d[0])
     for i in a:
         if isinstance(i[1], (float, str, int, list, bool)):
             if i[0] == 'i' or '__' in i[0]:

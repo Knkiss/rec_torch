@@ -1,6 +1,8 @@
 from enum import Enum
 
 import torch
+from sklearn.cluster import KMeans
+from torch_scatter import scatter_mean
 
 from train import utils
 import world
@@ -145,7 +147,8 @@ def loss_New_2_2(all_users, all_items, users, pos, neg):
     ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T)
     ttl_score = torch.sum(torch.exp(ttl_score / world.hyper_SSM_Loss_temp), dim=1)
 
-    clogits = -(torch.log(pos_score) - torch.log(ttl_score * world.hyper_test_ratio + neg_score * world.hyper_test_ratio_2))
+    clogits = -(torch.log(pos_score) - torch.log(
+        ttl_score * world.hyper_test_ratio + neg_score * world.hyper_test_ratio_2))
     loss = torch.sum(clogits)
     return loss
 
@@ -170,7 +173,7 @@ def loss_New_2_3(all_users, all_items, users, pos, neg):
 
 
 def loss_regulation(all_users_origin, all_items_origin, users, pos, neg):
-    if isinstance(all_users_origin,torch.Tensor):
+    if isinstance(all_users_origin, torch.Tensor):
         userEmb0 = all_users_origin[users.long()]
         posEmb0 = all_items_origin[pos.long()]
         negEmb0 = all_items_origin[neg.long()]
@@ -235,3 +238,20 @@ def loss_transE(head, tail, relation, h, r, pos_t, neg_t):
     l2_loss = L2_loss_mean(h_embed) + L2_loss_mean(r_embed) + L2_loss_mean(pos_t_embed) + L2_loss_mean(neg_t_embed)
     loss = kg_loss + 1e-3 * l2_loss
     return loss
+
+
+def loss_kd_cluster_ii_graph(from_emb, to_emb):
+    cluster_num = world.hyper_WORK2_cluster_num
+    source_emb_np = from_emb.cpu().detach().numpy()
+    kmeans = KMeans(n_clusters=cluster_num, random_state=0, n_init="auto")
+    kmeans.fit(source_emb_np)
+    idx = torch.LongTensor(kmeans.labels_).to(world.device)
+
+    from_cluster = scatter_mean(src=from_emb, index=idx, dim_size=cluster_num, dim=0)
+    to_cluster = scatter_mean(src=to_emb, index=idx, dim_size=cluster_num, dim=0)
+
+    # 构造kmeans后的ii中心矩阵
+    ckg_constructed_graph = torch.cosine_similarity(from_cluster.unsqueeze(dim=0), from_cluster.unsqueeze(dim=1), 2)
+    ui_constructed_graph = torch.cosine_similarity(to_cluster.unsqueeze(dim=0), to_cluster.unsqueeze(dim=1), 2)
+    kd_loss = torch.sum((ckg_constructed_graph - ui_constructed_graph) ** 2) * world.hyper_KD_regulation
+    return kd_loss
