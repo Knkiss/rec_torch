@@ -258,15 +258,19 @@ def loss_kd_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch_item_ne
 
 
 # mode = 3, 4
-def loss_kd_cluster_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch=True):
+def loss_kd_cluster_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch=True, gpu=True):
     if batch:
         from_item_emb = from_item_emb[batch_item.long()]
         to_item_emb = to_item_emb[batch_item.long()]
     cluster_num = world.hyper_WORK2_cluster_num
-    source_emb_np = from_item_emb.cpu().detach().numpy()
-    kmeans = KMeans(n_clusters=cluster_num, random_state=random.randint(0, 10000), n_init="auto")
-    kmeans.fit(source_emb_np)
-    idx = torch.LongTensor(kmeans.labels_).to(world.device)
+
+    if gpu:
+        _, idx = utils.kmeans(from_item_emb, world.hyper_WORK2_cluster_num)
+    else:
+        source_emb_np = from_item_emb.cpu().detach().numpy()
+        kmeans = KMeans(n_clusters=cluster_num, random_state=random.randint(0, 10000), n_init="auto")
+        kmeans.fit(source_emb_np)
+        idx = torch.LongTensor(kmeans.labels_).to(world.device)
 
     from_cluster = scatter_mean(src=from_item_emb, index=idx, dim_size=cluster_num, dim=0)
     to_cluster = scatter_mean(src=to_item_emb, index=idx, dim_size=cluster_num, dim=0)

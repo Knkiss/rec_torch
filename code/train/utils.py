@@ -179,3 +179,20 @@ def create_adj_mat(training_user, training_item, num_users, num_items, is_subgra
     Graph = convert_sp_mat_to_sp_tensor(adj_matrix)
     Graph = Graph.coalesce().to(world.device)
     return Graph
+
+
+def kmeans(x, ncluster, niter=10):
+    """
+    x : torch.tensor(data_num,data_dim)
+    ncluster : The number of clustering for data_num
+    niter : Number of iterations for kmeans
+    """
+    N, D = x.size()
+    cluster = x[torch.randperm(N)[:ncluster]] # init clusters at random
+    for i in range(niter):
+        labels = ((x[:, None, :] - cluster[None, :, :])**2).sum(-1).argmin(1)
+        cluster = torch.stack([x[labels == k].mean(0) for k in range(ncluster)])
+        nan_idx = torch.any(torch.isnan(cluster), dim=1)
+        num_dead = nan_idx.sum().item()
+        cluster[nan_idx] = x[torch.randperm(N)[:num_dead]]  # re-init dead clusters
+    return cluster, labels
