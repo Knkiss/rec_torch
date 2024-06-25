@@ -258,8 +258,8 @@ def loss_kd_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch_item_ne
 
 
 # mode = 3, 4
-def loss_kd_cluster_ii_graph_batch(from_item_emb, to_item_emb, batch_item, batch=True, gpu=True):
-    if batch:
+def loss_kd_cluster_ii_graph_batch(from_item_emb, to_item_emb, batch_item=None, gpu=True):
+    if batch_item is not None:
         from_item_emb = from_item_emb[batch_item.long()]
         to_item_emb = to_item_emb[batch_item.long()]
     cluster_num = world.hyper_WORK2_cluster_num
@@ -292,3 +292,69 @@ def loss_kd_A_graph_batch(from_user_emb, to_user_emb, from_item_emb, to_item_emb
 
     kd_loss = torch.sum((t_dist - s_dist) ** 2) * world.hyper_KD_regulation
     return kd_loss
+
+
+# mode = 6, 7
+def loss_kd_mlp_ii_graph_batch(group_mlp, from_item_emb, to_item_emb, batch_item=None, eps=1e-10, tau=0.0001):
+    if batch_item is not None:
+        from_item_emb = from_item_emb[batch_item.long()]
+        to_item_emb = to_item_emb[batch_item.long()]
+
+    group_emb = group_mlp(from_item_emb)
+    gumbel_noise = -torch.log(-torch.log(torch.rand_like(group_emb) + eps) + eps)
+    gumbel_logits = (group_emb + gumbel_noise) / tau  # tau=0.001即可实现0和1的softmax，因此设置为0.0001
+    group_labels = F.softmax(gumbel_logits, dim=-1)
+
+    from_cluster = torch.mm(group_labels.T, from_item_emb)
+    to_cluster = torch.mm(group_labels.T, to_item_emb)
+
+    # 构造mlp分组后的ii中心矩阵
+    ckg_constructed_graph = torch.cosine_similarity(from_cluster.unsqueeze(dim=0), from_cluster.unsqueeze(dim=1), 2)
+    ui_constructed_graph = torch.cosine_similarity(to_cluster.unsqueeze(dim=0), to_cluster.unsqueeze(dim=1), 2)
+    kd_loss = torch.sum((ckg_constructed_graph - ui_constructed_graph) ** 2) * world.hyper_KD_regulation
+    return kd_loss
+
+
+# mode = 8, 9 存疑
+def loss_bpr_mlp_ui_graph_batch(group_mlp, from_item_emb, to_item_emb, from_user_emb, to_user_emb, users, pos, neg,
+                                eps=1e-10, tau=0.0001, form='BPR', gumbel_softmax=2):
+    from_item_emb = F.dropout(from_item_emb, 0.05)
+    group_emb = group_mlp(from_item_emb)
+
+    if gumbel_softmax == 2:
+        p = F.softmax(group_emb, dim=1)
+        g = - torch.log(-torch.log(torch.rand_like(group_emb) + 1e-25))
+        gumbel_logits = (torch.log(p) + g) / tau
+    else:
+        gumbel_noise = -torch.log(-torch.log(torch.rand_like(group_emb) + eps) + eps)
+        gumbel_logits = (group_emb + gumbel_noise) / tau  # tau=0.001即可实现0和1的softmax，因此设置为0.0001
+    group_labels = F.softmax(gumbel_logits, dim=-1)
+    # 从CKG提供的item group labels
+
+    pos_batch_idx = torch.argmax(group_labels[pos], dim=1)
+    neg_batch_idx = torch.argmax(group_labels[neg], dim=1)
+
+    # 用于对UI的兴趣分布进行优化
+    # from_cluster = torch.mm(group_labels.T, from_item_emb)
+    to_cluster = torch.mm(group_labels.T, to_item_emb)
+
+    if form == 'BPR':
+        users_emb = to_user_emb[users]
+        pos_batch_group_emb = to_cluster[pos_batch_idx]
+        neg_batch_group_emb = to_cluster[neg_batch_idx]
+        pos_scores = torch.mul(users_emb, pos_batch_group_emb).sum(dim=1)
+        neg_scores = torch.mul(users_emb, neg_batch_group_emb).sum(dim=1)
+        loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores))) * world.hyper_KD_regulation
+    elif form == 'InfoNCE':
+        normalize_all_emb1 = F.normalize(to_user_emb, 1)
+        normalize_all_emb2 = F.normalize(to_cluster, 1)
+        normalize_emb1 = normalize_all_emb1[users]
+        normalize_emb2 = normalize_all_emb2[pos_batch_idx]
+        pos_score = torch.sum(torch.mul(normalize_emb1, normalize_emb2), dim=1)
+        ttl_score = torch.matmul(normalize_emb1, normalize_all_emb2.T)
+        pos_score = torch.exp(pos_score / world.hyper_ssl_temp)
+        ttl_score = torch.sum(torch.exp(ttl_score / world.hyper_ssl_temp), dim=1)
+        loss = -torch.sum(torch.log(pos_score / ttl_score)) * world.hyper_KD_regulation
+    else:
+        raise NotImplementedError("form = [BPR, InfoNCE]")
+    return loss
