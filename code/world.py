@@ -83,7 +83,6 @@ def parse_args():
 
     parser.add_argument('--hyper1', type=int, default=10)
     parser.add_argument('--hyper2', type=float, default=0.001)
-    parser.add_argument('--hyper3', type=int, default=0)  # KD mode
 
     return parser.parse_args()
 

@@ -152,7 +152,7 @@ class Manager:
                 t.set_postfix(
                     loss_bpr=aver_loss[Loss.BPR.value] / (batch_size * len(UILoader)),
                     loss_ssl=aver_loss[Loss.SSL.value] / (batch_size * len(UILoader)),
-                    loss_mae=aver_loss[Loss.MAE.value]
+                    loss_mae=aver_loss[Loss.MAE.value] / (batch_size * len(UILoader))
                 )
         if world.tensorboard_enable:
             self.tensorboard.add_scalar(f'Loss/BPR', aver_loss[Loss.BPR.value] / (batch_size * len(UILoader)),

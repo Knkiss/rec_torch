@@ -554,25 +554,13 @@ class WORK2(model.AbstractRecModel):
         #                                       self.num_entities)
         self.Graph_resample = self.Graph  # Prepare each epoch
 
-        # 先使用性能最佳的预训练emb作一次图采样处理，以分析讨论的三个原因. 此处记录实验的部分性能
+        # Use for KD on item group
+        self.group_mlp = nn.Linear(in_features=self.embedding_dim,
+                                   out_features=world.hyper_WORK2_cluster_num).to(world.device)
+        nn.init.normal_(self.group_mlp.weight, std=0.1)
 
         # if world.hyper_WORK2_reset_ui_graph:
         #     self.Graph_resample = self.matrix_resample.prepare_init_from_pretrain()
-
-        # 从Graph_KG中找出连接关系中包含1的items
-        # k_relation_items_index = []
-        # have_relation_items_index = []
-        # for i in range(1, self.n_relations):
-        #     k_relation_items_index.append(
-        #         np.unique(self.Graph_KG.row[(self.Graph_KG.data == i) & (self.Graph_KG.row < self.n_items)]))
-        # for i in k_relation_items_index:
-        #     have_relation_items_index.extend(i)
-        # have_relation_items_index = np.unique(have_relation_items_index)
-        # print('INFO: items num no relation:', self.n_items - len(have_relation_items_index))
-        # print('INFO: Finish Calculate')
-        # self.k_relation_items_index_tensor = []
-        # for i in k_relation_items_index:
-        #     self.k_relation_items_index_tensor.append(torch.LongTensor(i))
 
     # def prepare_each_epoch(self):
     #     eu, ei, ee, g0 = (self.embedding_user.weight,
@@ -639,44 +627,26 @@ class WORK2(model.AbstractRecModel):
             if world.hyper_WORK2_KD_mode == 1:
                 loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos)
             elif world.hyper_WORK2_KD_mode == 2:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos, neg)
+                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos, neg)  # w/ neg
             elif world.hyper_WORK2_KD_mode == 3:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos, batch=True)
+                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos)
             elif world.hyper_WORK2_KD_mode == 4:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos, batch=False)
+                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0)
             elif world.hyper_WORK2_KD_mode == 5:
                 loss[losses.Loss.MAE.value] = losses.loss_kd_A_graph_batch(zu_g1, zu_g0, zi_g1, zi_g0, users, pos)
+            elif world.hyper_WORK2_KD_mode == 6:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_mlp_ii_graph_batch(self.group_mlp, zi_g1, zi_g0, pos)
+            elif world.hyper_WORK2_KD_mode == 7:
+                loss[losses.Loss.MAE.value] = losses.loss_kd_mlp_ii_graph_batch(self.group_mlp, zi_g1, zi_g0)
+            elif world.hyper_WORK2_KD_mode == 8:
+                loss[losses.Loss.MAE.value] = losses.loss_bpr_mlp_ui_graph_batch(self.group_mlp, zi_g1, zi_g0,
+                                                                                 zu_g1, zu_g0, users, pos, neg,
+                                                                                 form='BPR')
+            elif world.hyper_WORK2_KD_mode == 9:
+                loss[losses.Loss.MAE.value] = losses.loss_bpr_mlp_ui_graph_batch(self.group_mlp, zi_g1, zi_g0,
+                                                                                 zu_g1, zu_g0, users, pos, neg,
+                                                                                 form='InfoNCE')
             else:
                 raise NotImplementedError("world.hyper_WORK2_KD_mode")
-
-        # kd_loss_type = 'A_norm'  # A_norm、A_MSE、II_MSE
-        # if kd_loss_type == 'A_norm':
-        #     # TODO 代码有错误
-        #     matrix_student = torch.mm(zu_g0[users], zi_g0[pos].T)
-        #     matrix_teacher = torch.mm(zu_g1[users], zi_g1[pos].T)
-        #     matrix_student = F.sigmoid(matrix_student)
-        #     matrix_teacher = F.sigmoid(matrix_teacher)
-        #     kd_loss = torch.norm(matrix_teacher - matrix_student) * 0.01
-        # elif kd_loss_type == 'A_MSE':
-        #     # TODO 代码有错误
-        #     matrix_student = torch.mm(zu_g0[users], zi_g0[pos].T)
-        #     matrix_teacher = torch.mm(zu_g1[users], zi_g1[pos].T)
-        #     matrix_student = torch.norm(matrix_student, dim=1)
-        #     matrix_teacher = torch.norm(matrix_teacher, dim=1)
-        #     kd_loss = torch.sum((matrix_teacher - matrix_student) ** 2) * 0.01
-        # elif kd_loss_type == 'II_MSE':
-        #     teacher_k = []
-        #     student_k = []
-        #     for i in self.k_relation_items_index_tensor:
-        #         teacher_k.append(torch.mean(zi_g0[i], dim=0))
-        #         student_k.append(torch.mean(zi_g1[i], dim=0))
-        #     teacher_k = torch.stack(teacher_k)
-        #     student_k = torch.stack(student_k)
-        #     teacher_mat = torch.cosine_similarity(teacher_k.unsqueeze(dim=0), teacher_k.unsqueeze(dim=1), dim=2)
-        #     student_mat = torch.cosine_similarity(student_k.unsqueeze(dim=0), student_k.unsqueeze(dim=1), dim=2)
-        #     kd_loss = torch.sum((student_mat - teacher_mat) ** 2)
-        # else:
-        #     raise NotImplementedError('kd_loss_type', kd_loss_type)
-        # loss[losses.Loss.MAE.value] = kd_loss
 
         return loss
