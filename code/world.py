@@ -37,7 +37,7 @@ hyper_WORK2_ui_layers = 3
 
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # enable>0 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
-hyper_WORK2_KD_mode = 1  # enable>0 使用哪种蒸馏方式
+hyper_WORK2_KD_mode = 0  # enable>0 使用哪种蒸馏方式  TODO HYPER3
 
 sys_seed = 2020
 sys_epoch = 0
@@ -56,7 +56,7 @@ def parse_args():
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='lastfm_kg')
+    parser.add_argument('--dataset', type=str, default='amazonbook')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
@@ -81,19 +81,26 @@ def parse_args():
     parser.add_argument('--uiK', type=int, default=0)
     parser.add_argument('--iuK', type=int, default=0)
 
-    parser.add_argument('--hyper1', type=int, default=10)
-    parser.add_argument('--hyper2', type=float, default=0.001)
+
+    parser.add_argument('--hyper1', type=int, default=10)  # cluster num
+    parser.add_argument('--hyper2', type=float, default=1)  # kd regulation
+    parser.add_argument('--hyper3', type=int, default=0)  # kd mode
+    parser.add_argument('--pcl_combine', action="store_true", help="Use SSM weighted BPR")
+    parser.add_argument('--no_print', action="store_true", help="Disable all print on running")
 
     return parser.parse_args()
 
 
 args = parse_args()
+hyper_WORK2_cluster_num = args.hyper1
+hyper_KD_regulation = args.hyper2
+hyper_WORK2_KD_mode = args.hyper3
+hyper_PCL_combine = args.pcl_combine
+
 WORK2_sample_uuK = args.uuK
 WORK2_sample_iiK = args.iiK
 WORK2_sample_uiK = args.uiK
 WORK2_sample_iuK = args.iuK
-hyper_WORK2_cluster_num = args.hyper1
-hyper_KD_regulation = args.hyper2
 hyper_WORK2_reset_ui_graph = (WORK2_sample_uuK + WORK2_sample_iiK + WORK2_sample_uiK + WORK2_sample_iuK) > 0
 model = args.model
 dataset = args.dataset
@@ -150,6 +157,12 @@ tqdm_enable = True
 if linux_nohup:
     tqdm_enable = False
     mail_on_stop_enable = True
+no_print_enable = args.no_print  # 关闭每次运行的其他打印，只显示进度与最终性能
+if no_print_enable:
+    epoch_result_show_enable = False
+    model_info_show_enable = False
+    dataset_info_show_enable = False
+    tqdm_enable = False
 # endregion
 
 if model == 'MF':
@@ -165,6 +178,8 @@ if model == 'KGIN':
 
 
 def print_arguments():
+    if no_print_enable:
+        return
     print('\n----------------------------------- Settings -----------------------------------')
     a = globals().copy()
     a = sorted(a.items(), key=lambda d: d[0])

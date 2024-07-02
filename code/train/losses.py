@@ -358,3 +358,27 @@ def loss_bpr_mlp_ui_graph_batch(group_mlp, from_item_emb, to_item_emb, from_user
     else:
         raise NotImplementedError("form = [BPR, InfoNCE]")
     return loss
+
+
+def loss_weighted_bpr(all_users, all_items, users, pos, neg):
+    # 验证与SSM+BPR的性能
+    users_emb = all_users[users.long()]
+    pos_emb = all_items[pos.long()]
+    neg_emb = all_items[neg.long()]
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+    neg_scores = torch.mul(users_emb, neg_emb).sum(dim=1)
+    logits = -(pos_scores - neg_scores)
+
+    batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+    numerator = torch.exp(torch.mul(batch_user_emb, batch_item_emb).sum(dim=1) / world.hyper_SSM_Loss_temp)
+    denominator = torch.sum(torch.exp(torch.mm(batch_user_emb, batch_item_emb.T) / world.hyper_SSM_Loss_temp), dim=1)
+    weighted = torch.pow(numerator / denominator,  world.hyper_SSM_Regulation)
+
+    loss = torch.sum(torch.nn.functional.softplus(weighted * logits))
+    return loss
+
+
+def loss_mlp_cluster_contrastive():
+    # 验证不同通道下进行拉近对比学习的作用
+    pass
