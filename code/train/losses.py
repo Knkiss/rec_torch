@@ -379,6 +379,38 @@ def loss_weighted_bpr(all_users, all_items, users, pos, neg):
     return loss
 
 
-def loss_mlp_cluster_contrastive():
+def loss_mlp_cluster_contrastive(group_mlp, from_item_emb, to_item_emb, pos, eps=1e-10, tau=0.0001, reverse=False):
     # 验证不同通道下进行拉近对比学习的作用
-    pass
+    group_emb = group_mlp(from_item_emb)
+    gumbel_noise = -torch.log(-torch.log(torch.rand_like(group_emb) + eps) + eps)
+    gumbel_logits = (group_emb + gumbel_noise) / tau  # tau=0.001即可实现0和1的softmax，因此设置为0.0001
+    group_labels = F.softmax(gumbel_logits, dim=-1)
+
+    batch_group = group_labels[pos]
+    group_same = batch_group @ group_labels.T
+
+    normalize_emb = F.normalize(from_item_emb[pos], 1)
+    normalize_all_emb = F.normalize(to_item_emb, 1)
+
+    ttl_score = torch.matmul(normalize_emb, normalize_all_emb.T)
+    ttl_score = torch.exp(ttl_score / world.hyper_ssl_temp)
+
+    pos_score = torch.sum(ttl_score * group_same, dim=1)
+    ttl_score = torch.sum(ttl_score, dim=1)
+
+    loss = -torch.sum(torch.log(pos_score / ttl_score))
+
+    # 是否考虑双向对比
+    if reverse:
+        normalize_emb = F.normalize(to_item_emb[pos], 1)
+        normalize_all_emb = F.normalize(from_item_emb, 1)
+
+        ttl_score = torch.matmul(normalize_emb, normalize_all_emb.T)
+        ttl_score = torch.exp(ttl_score / world.hyper_ssl_temp)
+
+        pos_score = torch.sum(ttl_score * group_same, dim=1)
+        ttl_score = torch.sum(ttl_score, dim=1)
+
+        loss += -torch.sum(torch.log(pos_score / ttl_score))
+
+    return loss * world.hyper_KD_regulation

@@ -646,6 +646,11 @@ class WORK2(model.AbstractRecModel):
                 loss[losses.Loss.MAE.value] = losses.loss_bpr_mlp_ui_graph_batch(self.group_mlp, zi_g1, zi_g0,
                                                                                  zu_g1, zu_g0, users, pos, neg,
                                                                                  form='InfoNCE')
+            elif world.hyper_WORK2_KD_mode == 10:
+                loss[losses.Loss.MAE.value] = losses.loss_mlp_cluster_contrastive(self.group_mlp, zi_g1, zi_g0, pos)
+            elif world.hyper_WORK2_KD_mode == 11:
+                loss[losses.Loss.MAE.value] = losses.loss_mlp_cluster_contrastive(self.group_mlp, zi_g1, zi_g0, pos,
+                                                                                  reverse=True)
             else:
                 raise NotImplementedError("world.hyper_WORK2_KD_mode")
 
