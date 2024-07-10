@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from decimal import Decimal
+from multiprocessing import Pool
 
 import RQ0_calculate
 import world
@@ -354,7 +355,8 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
         print(' \\\\')
 
 
-def RQ0_calculate_all(datasets, models, debug=False):
+def RQ0_calculate_all(datasets, models, debug=False, multiprocess=16):
+    p = Pool(multiprocess)
     finish = True
     for (dataset, model) in itertools.product(datasets, models):
         file = os.path.join(world.PATH_RECORD, dataset + '_' + model + '.npy')
@@ -362,7 +364,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
             try:
                 if debug:
                     print(file, '未存在，计算结果')
-                RQ0_calculate.main(dataset, model)
+                print("尝试使用多线程计算数据集:", dataset, "模型:", model, "的评价指标")
+                p.apply_async(RQ0_calculate.main, args=(dataset, model))
             except Exception as e:
                 print(e)
                 print(file, '计算失败')
@@ -370,6 +373,8 @@ def RQ0_calculate_all(datasets, models, debug=False):
                 continue
         elif debug:
             print(file, '已存在')
+    p.close()
+    p.join()
     if finish:
         print("RQ0：所有数据处理完毕")
     else:
