@@ -26,9 +26,6 @@ n_nodes = 0
 train_user_set = defaultdict(list)
 test_user_set = defaultdict(list)
 
-"""Change"""
-best_hyperparameter_group = world.hyper_KGRec_best_hyper_group
-
 
 def read_cf(file_name):
     inter_mat = list()
@@ -476,25 +473,25 @@ class KGRec(model.AbstractRecModel):
 
         self.mae_coef = 0.1
         self.mae_msize = 256
-        self.cl_coef = 0.01
-        self.tau = 1.0
+        self.cl_coef = 0.001
+        self.tau = 0.5
         self.cl_drop = 0.5
         self.samp_func = "torch"
 
-        if world.dataset == 'last-fm' or best_hyperparameter_group == 1:
+        if world.dataset == 'last-fm':
             self.mae_coef = 0.1
             self.mae_msize = 256
             self.cl_coef = 0.01
             self.tau = 1.0
             self.cl_drop = 0.5
-        elif world.dataset == 'mind-f' or best_hyperparameter_group == 2:
+        elif world.dataset == 'mind-f':
             self.mae_coef = 0.1
             self.mae_msize = 256
             self.cl_coef = 0.001
             self.tau = 0.1
             self.cl_drop = 0.6
             self.samp_func = "np"
-        elif world.dataset == 'alibaba-fashion' or best_hyperparameter_group == 3:
+        elif world.dataset == 'alibaba-fashion':
             self.mae_coef = 0.1
             self.mae_msize = 256
             self.cl_coef = 0.001

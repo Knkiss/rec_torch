@@ -16,10 +16,10 @@ class GraphDA(model.AbstractRecModel):
         self.pretrained_embedding_item = torch.nn.Embedding.from_pretrained(emb['embedding_item.weight']).weight
 
         self.sample_batch_size = 100
-        self.distill_userK = 3  # <= 50
-        self.distill_itemK = 3  # <= 50
-        self.distill_uuK = 3
-        self.distill_iiK = 3
+        self.distill_userK = 5  # <= 50
+        self.distill_itemK = 5  # <= 50
+        self.distill_uuK = 5
+        self.distill_iiK = 5
         self.distill_thres = 0.5
         self.uuii_thres = -1.0
 

@@ -30,7 +30,6 @@ hyper_SSM_Regulation = 0.1  # BPR 和 SSM的比例系数，加在SSM前
 hyper_SSM_Margin = 1
 hyper_decay = 1e-4
 hyper_embedding_dim = 64
-hyper_KGRec_best_hyper_group = 1  # option=[1,2,3]
 
 hyper_WORK2_ckg_layers = 3
 hyper_WORK2_ui_layers = 3
@@ -84,7 +83,7 @@ def parse_args():
 
     parser.add_argument('--hyper1', type=int, default=10)  # cluster num
     parser.add_argument('--hyper2', type=float, default=1)  # kd regulation
-    parser.add_argument('--hyper3', type=int, default=0)  # kd mode
+    parser.add_argument('--hyper3', type=int, default=7)  # kd mode
     parser.add_argument('--pcl_combine', action="store_true", help="Use SSM weighted BPR")
     parser.add_argument('--no_print', action="store_true", help="Disable all print on running")
 

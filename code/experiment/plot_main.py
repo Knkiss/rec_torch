@@ -451,8 +451,8 @@ if __name__ == '__main__':
     # dataset_list = ['amazonbook', 'yelp2018_kg', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
     # model_list = ['CKGAGG_2', 'CKGAGG_1', 'CKGAGG', 'PCL', 'KGAG', 'KGRec', 'SSM', 'SimGCL']
 
-    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['KGAG_alpha']
+    dataset_list = ['amazonbook']
+    model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
 
     # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
