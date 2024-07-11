@@ -29,14 +29,14 @@ class Ablation:
         for i in self.dataset_list:
             for j in self.ablation_list:
                 world.dataset = i
-                world.hyper_KGAG_ablated_model = j
+                world.hyper_WORK2_ablation_model = j
                 world.sys_ablation_name = str(j) + str(postfix)
                 world.sys_root_model = False
                 Manager()
 
 
 if __name__ == '__main__':
-    postfix = '_2'
-    ablation_list = [0, 2, 3, 4]
-    dataset_list = ['lastfm_kg', 'amazonbook', 'movielens1m_kg']
+    postfix = 'ablation'
+    ablation_list = [1, 2, 3, 4]
+    dataset_list = ['lastfm_kg', 'movielens1m_kg', 'amazonbook']
     Ablation(ablation_list, dataset_list, postfix)

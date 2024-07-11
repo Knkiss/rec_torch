@@ -37,6 +37,7 @@ hyper_WORK2_ui_layers = 3
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # enable>0 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
 hyper_WORK2_KD_mode = 0  # enable>0 使用哪种蒸馏方式  TODO HYPER3
+hyper_WORK2_ablation_model = 4  # optional=[1,2,3,4] 1=w/o KD 2=SSM->BPR 3=KG->UI 4=attention->mean
 
 sys_seed = 2020
 sys_epoch = 0
