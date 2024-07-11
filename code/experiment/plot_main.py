@@ -238,11 +238,11 @@ def RQ1_compare_all(datasets, models, x_ticks, type='png', fig_show=False, fig_s
             for model in range(len(models)):
                 key = models[model]
                 if model == 0:
-                    plt.plot(x, data[key], marker=marker_list[-1], ms=5, color=color_list[-1], label=key)
+                    plt.plot(x, data[key], marker=marker_list[-1], ms=5, color=color_list[-1], label=key, zorder=1)
                 else:
                     plt.plot(x, data[key], marker=marker_list[model], ms=5, color=color_list[model], label=key)
 
-            plt.legend(fontsize=12, loc="upper left")
+            plt.legend(fontsize=12, ncol=3, loc="lower right")
             plt.grid(linestyle='--')
             plt.xticks(x, x_ticks, fontsize=12, weight='bold')
             plt.margins(0)
@@ -456,8 +456,8 @@ if __name__ == '__main__':
     # dataset_list = ['amazonbook', 'yelp2018_kg', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
     # model_list = ['CKGAGG_2', 'CKGAGG_1', 'CKGAGG', 'PCL', 'KGAG', 'KGRec', 'SSM', 'SimGCL']
 
-    dataset_list = ['amazonbook']
-    model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
+    dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'XSimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
 
     # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
@@ -471,8 +471,7 @@ if __name__ == '__main__':
     #                 fig_show=False, fig_save=False,
     #                 table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
 
-    # model_list = ['KGAG', 'KGCL', 'SGL']
-    # dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    model_list = ['WORK2', 'SimGCL', 'KGCL']
     # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
     #                      fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
     # RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,

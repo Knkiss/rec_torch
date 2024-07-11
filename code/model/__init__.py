@@ -21,6 +21,7 @@ from model.GJJ.CGCL import CGCL
 from model.knowledge.kgrec import KGRec
 from model.general.graphda import GraphDA
 from model.mine.work2 import WORK2
+from model.general.xsimgcl import XSimGCL
 
 
 def get_model_by_name(name):

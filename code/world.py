@@ -51,7 +51,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='WORK2')
     # classic: LightGCN、MF、GraphDA
-    # contrastive: SSM、SimGCL、SGL
+    # contrastive: SSM、SimGCL、SGL、XSimGCL
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
