@@ -37,7 +37,7 @@ hyper_WORK2_ui_layers = 3
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # enable>0 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
 hyper_WORK2_KD_mode = 0  # enable>0 使用哪种蒸馏方式  TODO HYPER3
-hyper_WORK2_ablation_model = 4  # optional=[1,2,3,4] 1=w/o KD 2=SSM->BPR 3=KG->UI 4=attention->mean
+hyper_WORK2_ablation_model = 5  # optional=[1,2,3,4] 1=w/o KD 2=SSM->BPR 3=KG->UI 4=attention->mean 5=SSM->CL
 
 sys_seed = 2020
 sys_epoch = 0
@@ -56,7 +56,7 @@ def parse_args():
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
     # mine: PCL、KGIC、WORK2
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='amazonbook')
+    parser.add_argument('--dataset', type=str, default='lastfm_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
@@ -84,7 +84,7 @@ def parse_args():
 
     parser.add_argument('--hyper1', type=int, default=10)  # cluster num
     parser.add_argument('--hyper2', type=float, default=1)  # kd regulation
-    parser.add_argument('--hyper3', type=int, default=7)  # kd mode
+    parser.add_argument('--hyper3', type=int, default=0)  # kd mode
     parser.add_argument('--pcl_combine', action="store_true", help="Use SSM weighted BPR")
     parser.add_argument('--no_print', action="store_true", help="Disable all print on running")
 

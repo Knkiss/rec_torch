@@ -37,6 +37,6 @@ class Ablation:
 
 if __name__ == '__main__':
     postfix = 'ablation'
-    ablation_list = [1, 2, 3, 4]
+    ablation_list = [5]
     dataset_list = ['lastfm_kg', 'movielens1m_kg', 'amazonbook']
     Ablation(ablation_list, dataset_list, postfix)

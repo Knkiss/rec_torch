@@ -457,8 +457,8 @@ if __name__ == '__main__':
     # model_list = ['CKGAGG_2', 'CKGAGG_1', 'CKGAGG', 'PCL', 'KGAG', 'KGRec', 'SSM', 'SimGCL']
 
     dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'XSimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
-
+    # model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'XSimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
+    model_list = ['WORK2', 'WORK21ablation', 'WORK22ablation', 'WORK23ablation', 'WORK24ablation', 'WORK25ablation', ]
     # RQ0_datasets_statistics(datasets=dataset_list)
     RQ0_calculate_all(dataset_list, model_list)
 
@@ -467,9 +467,9 @@ if __name__ == '__main__':
     save_fig_type = 'eps'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
-    # RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
-    #                 fig_show=False, fig_save=False,
-    #                 table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
+    RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
+                    fig_show=False, fig_save=False,
+                    table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
 
     model_list = ['WORK2', 'SimGCL', 'KGCL']
     # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,

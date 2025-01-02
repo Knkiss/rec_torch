@@ -162,9 +162,15 @@ class WORK2(model.AbstractRecModel):
             loss[losses.Loss.BPR.value] = losses.loss_BPR(zu, zi, users, pos, neg)
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(eu, ei, users, pos, neg)
 
-        if world.hyper_WORK2_SSM_mode > 0:
+        if (world.hyper_WORK2_SSM_mode > 0
+                or world.hyper_WORK2_ablation_model == 2
+                or world.hyper_WORK2_ablation_model == 5):
             if world.hyper_WORK2_ablation_model == 2:
                 loss[losses.Loss.SSL.value] = losses.loss_BPR(zu_g1, zi_g1, users, pos, neg)
+            elif world.hyper_WORK2_ablation_model == 5:
+                loss[losses.Loss.SSL.value] = (losses.loss_info_nce(zi_g0, zi_g1, pos) +
+                                               losses.loss_info_nce(zu_g0, zu_g1, users))
+                return loss
             elif world.hyper_WORK2_SSM_mode == 1:
                 loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
             elif world.hyper_WORK2_SSM_mode == 2:
