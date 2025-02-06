@@ -1,25 +1,15 @@
-{'Precision': array([0.21446744, 0.16530699]), 'NDCG': array([0.28824026, 0.30116374]), 'Recall': array([0.21604964, 0.32294845]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.2141791 , 0.16450984]), 'NDCG': array([0.28833727, 0.30011443]), 'Recall': array([0.21738739, 0.32100201]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.20430801, 0.15918419]), 'NDCG': array([0.27275596, 0.2857851 ]), 'Recall': array([0.20327948, 0.30569745]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.06558684, 0.05429953]), 'NDCG': array([0.08725923, 0.09652215]), 'Recall': array([0.06998879, 0.11139696]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.06282225, 0.05174695]), 'NDCG': array([0.0838799 , 0.09311328]), 'Recall': array([0.06814841, 0.10861207]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.21472185, 0.16586669]), 'NDCG': array([0.28968895, 0.30278237]), 'Recall': array([0.217269  , 0.32279061]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.22057327, 0.17104817]), 'NDCG': array([0.29845833, 0.312729  ]), 'Recall': array([0.22564917, 0.33512658]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.21426391, 0.1667656 ]), 'NDCG': array([0.28952175, 0.30353484]), 'Recall': array([0.2162639 , 0.32385368]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.08102103, 0.065519  ]), 'NDCG': array([0.11205987, 0.12462783]), 'Recall': array([0.09559601, 0.14800654]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.07440638, 0.06111771]), 'NDCG': array([0.1039009 , 0.11719257]), 'Recall': array([0.08947842, 0.14178401]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.21478969, 0.16643487]), 'NDCG': array([0.28923626, 0.3025957 ]), 'Recall': array([0.21683496, 0.32224589]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.21884328, 0.16896201]), 'NDCG': array([0.29630193, 0.30961271]), 'Recall': array([0.22272282, 0.32999082]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.2223711 , 0.17204885]), 'NDCG': array([0.30091787, 0.31550789]), 'Recall': array([0.22847919, 0.33835756]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.1020692 , 0.08125848]), 'NDCG': array([0.1418365, 0.1562361]), 'Recall': array([0.12032494, 0.18312947]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.09224898, 0.07412653]), 'NDCG': array([0.12922043, 0.14453693]), 'Recall': array([0.11166855, 0.17335732]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.21567164, 0.16717266]), 'NDCG': array([0.28947446, 0.30359274]), 'Recall': array([0.21876468, 0.32589372]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.21599389, 0.16661296]), 'NDCG': array([0.29178103, 0.30490653]), 'Recall': array([0.21923585, 0.32543228]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.2186228 , 0.17023406]), 'NDCG': array([0.2969021 , 0.31195946]), 'Recall': array([0.22451471, 0.33382336]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.22310041, 0.1728036 ]), 'NDCG': array([0.30219196, 0.31628849]), 'Recall': array([0.22909347, 0.33756383]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.10556309, 0.08437924]), 'NDCG': array([0.14792287, 0.1643586 ]), 'Recall': array([0.12555775, 0.19339382]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.214654  , 0.16703697]), 'NDCG': array([0.28830054, 0.30256433]), 'Recall': array([0.21477396, 0.32301888]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.21460312, 0.16660448]), 'NDCG': array([0.28982325, 0.30415453]), 'Recall': array([0.21778678, 0.32538079]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.21689281, 0.16794437]), 'NDCG': array([0.29284526, 0.30701214]), 'Recall': array([0.21964754, 0.32846153]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.219827  , 0.17076832]), 'NDCG': array([0.297571  , 0.31272072]), 'Recall': array([0.22589253, 0.33546474]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.11563772, 0.09279172]), 'NDCG': array([0.16209179, 0.17947207]), 'Recall': array([0.13587689, 0.20988457]), 'dataset': 'movielens1m_kg', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.5}
+{'Recall': array([0.33613242]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.34695850]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.34085831]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.33544858]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.3496542 ]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.34153269]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.33628594]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.35023284]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.34463278]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.33838438]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.34440038]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.34572028]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.33738473]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.34239258]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.34240198]), 'dataset': 'movielens1m_kg', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.2'}

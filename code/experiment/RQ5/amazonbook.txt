@@ -1,25 +1,15 @@
-{'Precision': array([0.02026604, 0.01556785]), 'NDCG': array([0.06399739, 0.07861758]), 'Recall': array([0.09897019, 0.14653244]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.02005213, 0.01524061]), 'NDCG': array([0.06229553, 0.07611197]), 'Recall': array([0.09619421, 0.1412462 ]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.01809437, 0.01382258]), 'NDCG': array([0.05523563, 0.06779156]), 'Recall': array([0.08492112, 0.12585638]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.01415761, 0.01129464]), 'NDCG': array([0.04093117, 0.05192544]), 'Recall': array([0.06426391, 0.10021309]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.00840334, 0.00662407]), 'NDCG': array([0.02469247, 0.03088035]), 'Recall': array([0.03786833, 0.05798127]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.1, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.02022071, 0.0156323 ]), 'NDCG': array([0.06329125, 0.07829961]), 'Recall': array([0.09916468, 0.14818189]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.02117267, 0.0162117 ]), 'NDCG': array([0.06651347, 0.08161166]), 'Recall': array([0.10285579, 0.15192135]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.02118259, 0.01617841]), 'NDCG': array([0.06649643, 0.08141838]), 'Recall': array([0.10219063, 0.15068223]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.02038503, 0.0154871 ]), 'NDCG': array([0.06369703, 0.07757822]), 'Recall': array([0.09720538, 0.14225222]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.01715658, 0.01302149]), 'NDCG': array([0.0526748 , 0.06404721]), 'Recall': array([0.08022541, 0.11700402]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.15, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.01990905, 0.01540211]), 'NDCG': array([0.06259507, 0.07745376]), 'Recall': array([0.09803289, 0.14644391]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.02064002, 0.0159475 ]), 'NDCG': array([0.06451444, 0.07977298]), 'Recall': array([0.10085226, 0.15056292]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.02109901, 0.01613095]), 'NDCG': array([0.06549304, 0.0806195 ]), 'Recall': array([0.10234818, 0.15175941]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.02102676, 0.01617274]), 'NDCG': array([0.06521117, 0.08040963]), 'Recall': array([0.10125068, 0.15077326]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.02011163, 0.01530648]), 'NDCG': array([0.06219789, 0.07602159]), 'Recall': array([0.0954482 , 0.14045328]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.2, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.01970789, 0.01519174]), 'NDCG': array([0.06206092, 0.07664939]), 'Recall': array([0.09720492, 0.14482822]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.02028587, 0.01567197]), 'NDCG': array([0.06330414, 0.07846006]), 'Recall': array([0.09911846, 0.14874649]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.02061878, 0.01590996]), 'NDCG': array([0.06400987, 0.07916462]), 'Recall': array([0.10031892, 0.14975295]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.02073069, 0.01595033]), 'NDCG': array([0.06421379, 0.07928403]), 'Recall': array([0.10052754, 0.14969796]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.02036804, 0.01579663]), 'NDCG': array([0.06307497, 0.07805401]), 'Recall': array([0.09802306, 0.14672336]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.25, 'hyper_ssl_reg': 0.5}
-{'Precision': array([0.01931691, 0.01504583]), 'NDCG': array([0.06117175, 0.07598799]), 'Recall': array([0.09578001, 0.14416344]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.01}
-{'Precision': array([0.01976031, 0.01546089]), 'NDCG': array([0.06189704, 0.07721097]), 'Recall': array([0.09680219, 0.14692737]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.05}
-{'Precision': array([0.02021929, 0.01566134]), 'NDCG': array([0.06292484, 0.07797182]), 'Recall': array([0.09904668, 0.14802391]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.1}
-{'Precision': array([0.02025471, 0.01573501]), 'NDCG': array([0.06249075, 0.07769032]), 'Recall': array([0.0985225 , 0.14814355]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.2}
-{'Precision': array([0.02022354, 0.01566772]), 'NDCG': array([0.06212769, 0.07705876]), 'Recall': array([0.09718187, 0.14580112]), 'dataset': 'amazonbook', 'hyper_ssl_temp': 0.3, 'hyper_ssl_reg': 0.5}
+{'Recall': array([0.15083242]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.16048584]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.15615831]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 3.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.15154858]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.16395494]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.15543269]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 5.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.15468594]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.16520237]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.15623278]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 10.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.15578438]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.16445948]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.15832028]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 20.0, 'hyper_SSM_Regulation': '0.2'}
+{'Recall': array([0.15248473]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.05'}
+{'Recall': array([0.16148592]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.1'}
+{'Recall': array([0.15730198]), 'dataset': 'amazonbook', 'hyper_WORK2_cluster_num': 50.0, 'hyper_SSM_Regulation': '0.2'}

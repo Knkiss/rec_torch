@@ -31,13 +31,13 @@ hyper_SSM_Margin = 1
 hyper_decay = 1e-4
 hyper_embedding_dim = 64
 
-hyper_WORK2_ckg_layers = 3
+hyper_WORK2_ckg_layers = 2
 hyper_WORK2_ui_layers = 3
 
 hyper_WORK2_BPR_mode = 1  # 使用哪个图的结果作BPR LOSS和推荐，1=ui，2=ckg，3=sum
 hyper_WORK2_SSM_mode = 2  # enable>0 使用哪个图的结果作SSM LOSS，1=ui，2=ckg，3=sum
-hyper_WORK2_KD_mode = 0  # enable>0 使用哪种蒸馏方式  TODO HYPER3
-hyper_WORK2_ablation_model = 5  # optional=[1,2,3,4] 1=w/o KD 2=SSM->BPR 3=KG->UI 4=attention->mean 5=SSM->CL
+hyper_WORK2_KD_mode = 7  # enable>0 使用哪种蒸馏方式，在hyper3中修改
+hyper_WORK2_ablation_model = 0
 
 sys_seed = 2020
 sys_epoch = 0
@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
     parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
@@ -84,7 +84,7 @@ def parse_args():
 
     parser.add_argument('--hyper1', type=int, default=10)  # cluster num
     parser.add_argument('--hyper2', type=float, default=1)  # kd regulation
-    parser.add_argument('--hyper3', type=int, default=0)  # kd mode
+    parser.add_argument('--hyper3', type=int, default=7)  # kd mode
     parser.add_argument('--pcl_combine', action="store_true", help="Use SSM weighted BPR")
     parser.add_argument('--no_print', action="store_true", help="Disable all print on running")
 
@@ -92,8 +92,8 @@ def parse_args():
 
 
 args = parse_args()
-hyper_WORK2_cluster_num = args.hyper1
-hyper_KD_regulation = args.hyper2
+hyper_WORK2_cluster_num = 0
+hyper_KD_regulation = 0
 hyper_WORK2_KD_mode = args.hyper3
 hyper_PCL_combine = args.pcl_combine
 

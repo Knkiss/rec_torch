@@ -86,7 +86,7 @@ class WORK2(model.AbstractRecModel):
         self.ckg_gcn = CKGGCN(dims=self.embedding_dim, n_relations=self.n_relations)
 
         self.ui_layers = 3
-        self.ckg_layers = 3
+        self.ckg_layers = 2
 
         # self.matrix_resample = MatrixResample(self.ui_dataset,
         #                                       self.Graph_KG,

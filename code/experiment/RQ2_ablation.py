@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import world
 
-dataset = 'amazonbook'  # amazonbook、movielens1m_kg、lastfm_kg
+dataset = 'movielens1m_kg'  # amazonbook、movielens1m_kg、lastfm_kg
 name_list = ['Recall', 'NDCG']
 color_list = [
     "#9DB4D3",  # 淡蓝色，相对明亮
@@ -19,25 +19,26 @@ color_list = [
 
 if dataset == 'amazonbook':
     KGAG = [0.1654, 0.1266]
-    ablation1_wo_KD = [0.1652, 0.1265]
-    ablation2_w_BPR = [0.1338, 0.1004]
-    ablation3_wo_KG = [0.1617, 0.1233]
-    ablation4_w_mean = [0.1647, 0.1256]
-    ablation5_w_CL = [0.1108, 0.0901]
+    ablation1 = [0.1108, 0.0901]
+    ablation2 = [0.1388, 0.1026]
+    ablation3 = [0.1447, 0.1093]
+    ablation4 = [0.1527, 0.1104]
+    ablation5 = [0.1622, 0.1235]
 elif dataset == 'movielens1m_kg':
     KGAG = [0.3502, 0.5707]
-    ablation1_wo_KD = [0.3458, 0.5645]
-    ablation2_w_BPR = [0.3226, 0.5457]
-    ablation3_wo_KG = [0.3377, 0.5534]
-    ablation4_w_mean = [0.3454, 0.564]
-    ablation5_w_CL = [0.2204, 0.448]
+    ablation1 = [0.2204, 0.448]
+    ablation5 = [0.3458, 0.5645]
+    ablation2 = [0.3226, 0.5457]
+    ablation3 = [0.3377, 0.5534]
+    ablation4 = [0.3454, 0.564]
 elif dataset == 'lastfm_kg':
     KGAG = [0.4, 0.3475]
-    ablation1_wo_KD = [0.3961, 0.3423]
-    ablation2_w_BPR = [0.369, 0.2964]
-    ablation3_wo_KG = [0.3902, 0.3406]
-    ablation4_w_mean = [0.3974, 0.3463]
-    ablation5_w_CL = [0.3354, 0.3045]
+    ablation1 = [0.3354, 0.3045]
+    ablation2 = [0.369, 0.2964]
+    ablation3 = [0.3802, 0.3306]
+    ablation4 = [0.3944, 0.3403]
+    ablation5 = [0.3961, 0.3423]
+
 
 
 bar_width = 0.045
@@ -68,15 +69,15 @@ elif dataset == 'lastfm_kg':
     pass
 
 ax1.tick_params(labelsize=12)
-ax1.bar(ax1_x, ablation5_w_CL[0], width=bar_width, fc=color_list[0])
+ax1.bar(ax1_x, ablation1[0], width=bar_width, fc=color_list[0])
 ax1_x[0] += bar_and_space_width
-ax1.bar(ax1_x, ablation2_w_BPR[0], width=bar_width, fc=color_list[1])
+ax1.bar(ax1_x, ablation2[0], width=bar_width, fc=color_list[1])
 ax1_x[0] += bar_and_space_width
-ax1.bar(ax1_x, ablation3_wo_KG[0], width=bar_width, fc=color_list[2])
+ax1.bar(ax1_x, ablation3[0], width=bar_width, fc=color_list[2])
 ax1_x[0] += bar_and_space_width
-ax1.bar(ax1_x, ablation4_w_mean[0], width=bar_width, fc=color_list[3])
+ax1.bar(ax1_x, ablation4[0], width=bar_width, fc=color_list[3])
 ax1_x[0] += bar_and_space_width
-ax1.bar(ax1_x, ablation1_wo_KD[0], width=bar_width, fc=color_list[4])
+ax1.bar(ax1_x, ablation5[0], width=bar_width, fc=color_list[4])
 ax1_x[0] += bar_and_space_width
 ax1.bar(ax1_x, KGAG[0], width=bar_width, fc=color_list[5])
 ax1.grid(axis='y', linestyle='--')
@@ -86,17 +87,17 @@ ax1.set_xlabel("Metrics", fontsize=15, weight='bold')  # X轴标签
 
 ax2.tick_params(labelsize=12)
 
-ax2.bar(ax2_x, ablation5_w_CL[1], width=bar_width, label='WORK2 w/ CL', fc=color_list[0])
+ax2.bar(ax2_x, ablation1[1], width=bar_width, label='w/ Dual-GCN', fc=color_list[0])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation2_w_BPR[1], width=bar_width, label='WORK2 w/ Dual-BPR', fc=color_list[1])
+ax2.bar(ax2_x, ablation2[1], width=bar_width, label='w/o $\\mathcal{L}_{pcl}$', fc=color_list[1])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation3_wo_KG[1], width=bar_width, label='WORK2 w/o KG', fc=color_list[2])
+ax2.bar(ax2_x, ablation3[1], width=bar_width, label='w/ $\\mathcal{L}_{bpr}$', fc=color_list[2])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation4_w_mean[1], width=bar_width, label='WORK2 w/ $mean$', fc=color_list[3])
+ax2.bar(ax2_x, ablation4[1], width=bar_width, label='w/o $\\alpha$', fc=color_list[3])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation1_wo_KD[1], width=bar_width, label='WORK2 w/o KD', fc=color_list[4])
+ax2.bar(ax2_x, ablation5[1], width=bar_width, label='w/o $\\mathcal{L}_{ird}$', fc=color_list[4])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, KGAG[1], width=bar_width, label='WORK2', fc=color_list[5])
+ax2.bar(ax2_x, KGAG[1], width=bar_width, label='ICKGO', fc=color_list[5])
 ax2.set_ylabel("NDCG@20", fontsize=15, weight='bold')  # Y轴标签
 
 
@@ -122,6 +123,6 @@ output_dir = os.path.join(world.PATH_PLOT, 'WORK2', 'RQ2')
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 plt.savefig(os.path.join(output_dir, dataset + '_ablation.eps'), dpi=900, bbox_inches='tight')
-# plt.savefig(os.path.join(output_dir, dataset + '_ablation.png'), dpi=900, bbox_inches='tight')
+plt.savefig(os.path.join(output_dir, dataset + '_ablation.png'), dpi=900, bbox_inches='tight')
 # plt.close()
 # plt.show()

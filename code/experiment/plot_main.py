@@ -84,7 +84,7 @@ def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=
                     tick_label=name_list, fc='#6E7BC7')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#484E82')
+            plt.bar(x, data[models[0]], width=width, label='ICKGO', fc='#484E82')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -175,7 +175,7 @@ def RQ3_compare_longTail(datasets, models, type='png', fig_show=False, fig_save=
                     tick_label=name_list, fc='#5CA8B3')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label=models[0], fc='#2B5A66')
+            plt.bar(x, data[models[0]], width=width, label='ICKGO', fc='#2B5A66')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -460,20 +460,21 @@ if __name__ == '__main__':
     # model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'XSimGCL', 'KGAT', 'KGIN', 'MCCLK', 'KGCL', 'KGRec']
     model_list = ['WORK2', 'WORK21ablation', 'WORK22ablation', 'WORK23ablation', 'WORK24ablation', 'WORK25ablation', ]
     # RQ0_datasets_statistics(datasets=dataset_list)
-    RQ0_calculate_all(dataset_list, model_list)
+    # RQ0_calculate_all(dataset_list, model_list)
 
     # model_list = ['KGAG', 'KGCL', 'SGL', 'LightGCN', 'KGIN', 'MCCLK', 'KGAT', 'MF', 'KGCN']
     # dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
-    save_fig_type = 'eps'  # png 或 eps
+    # model_list = ['WORK2', 'SimGCL', 'KGCL']
+    save_fig_type = 'png'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])
 
     RQ1_compare_all(datasets=dataset_list, models=model_list, x_ticks=range(2, 21, 2), type=save_fig_type,
                     fig_show=False, fig_save=False,
                     table_dataset_show=True, table_metrics_show=False, table_latex_show=False)
 
-    model_list = ['WORK2', 'SimGCL', 'KGCL']
     # RQ3_compare_longTail(datasets=dataset_list, models=model_list, type=save_fig_type,
     #                      fig_show=False, fig_save=True, fig_recall=True, fig_num=False, fig_class=False)
+
     # RQ4_compare_sparsity(datasets=dataset_list, models=model_list, type=save_fig_type,
-    #                      fig_show=False, fig_save=True, metric='ndcg',
+    #                      fig_show=False, fig_save=True, metric='recall',
     #                      fig_metric=True, fig_num=False, fig_class=False)
