@@ -67,6 +67,28 @@ def loss_SSM_origin(all_users, all_items, users, pos):
     return loss * world.hyper_SSM_Regulation
 
 
+def loss_SSM(all_users, all_items, users, pos):
+    # BSL文章实现的双向softmax loss形式
+
+    batch_user_emb = F.normalize(all_users[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items[pos.long()], dim=1)
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.hyper_SSM_Margin
+
+    pos_score = torch.diag(ttl_score)
+    neg_score = ttl_score - torch.diag(pos_score)
+
+    temperature_1 = world.hyper_SSM_Loss_temp
+    temperature_2 = 1
+
+    pos_logits = torch.exp(pos_score / temperature_1)
+    neg_logits = torch.exp(neg_score / temperature_1)
+    neg_logits = neg_logits.sum(dim=-1)
+    neg_logits = torch.pow(neg_logits, temperature_2)
+    loss = - torch.log(pos_logits / neg_logits).mean()
+
+    return loss
+
+
 def loss_New_1_1(all_users, all_items, users, pos, neg):
     users_emb = all_users[users.long()]
     pos_emb = all_items[pos.long()]
@@ -414,3 +436,67 @@ def loss_mlp_cluster_contrastive(group_mlp, from_item_emb, to_item_emb, pos, eps
         loss += -torch.sum(torch.log(pos_score / ttl_score))
 
     return loss * world.hyper_KD_regulation
+
+
+def loss_knowledge_bpr(all_users_ui, all_items_ui, all_users_ckg, all_items_ckg, users, pos, neg):
+    ckg_u = F.normalize(all_users_ckg[users.long()], dim=1)
+    ckg_i_pos = F.normalize(all_items_ckg[pos.long()], dim=1)
+    ckg_i_neg = F.normalize(all_items_ckg[neg.long()], dim=1)
+
+    ui_u = F.normalize(all_users_ui[users.long()], dim=1)
+    ui_i_pos = F.normalize(all_items_ui[pos.long()], dim=1)
+    ui_i_neg = F.normalize(all_items_ui[neg.long()], dim=1)
+
+    ckg_score_pos = torch.mul(ckg_u, ckg_i_pos).sum(dim=1)
+    ckg_score_neg = torch.mul(ckg_u, ckg_i_neg).sum(dim=1)
+
+    ui_score_pos = torch.mul(ui_u, ui_i_pos).sum(dim=1)
+    ui_score_neg = torch.mul(ui_u, ui_i_neg).sum(dim=1)
+
+    # 找出ui_score_neg > ui_score_pos的位置，并构成一个新的tensor
+    mask = ui_score_neg > ui_score_pos
+    ui_score_pos_more = ui_score_pos[mask]
+    ui_score_neg_more = ui_score_neg[mask]
+
+    ckg_score_pos_more = ckg_score_pos[mask]
+    ckg_score_neg_more = ckg_score_neg[mask]
+
+    # user_more = users[mask]
+    # pos_more = pos[mask]
+    # neg_more = neg[mask]
+
+    # inter_vector_ui = torch.mul(batch_user_emb_ui, batch_item_emb_ui)
+    # diff_vector = inter_vector_ckg - inter_vector_ui
+    # diff_vector_mean = torch.mean(diff_vector, dim=0)
+    # users_emb = torch.mul(diff_user, users_emb)  # extra
+
+    users_emb = all_users_ui[users.long()]
+    pos_emb = all_items_ui[pos.long()]
+    neg_emb = all_items_ui[neg.long()]
+    pos_scores = torch.mul(users_emb, pos_emb).sum(dim=1)
+    neg_scores = torch.mul(users_emb, neg_emb).sum(dim=1)
+    loss = torch.sum(torch.nn.functional.softplus(-(pos_scores - neg_scores)))  # mean or sum
+    return loss
+
+
+def loss_knowledge_SSM_origin(all_users_ui, all_items_ui, all_users_ckg, all_items_ckg, users, pos):
+    batch_user_emb = F.normalize(all_users_ckg[users.long()], dim=1)
+    batch_item_emb = F.normalize(all_items_ckg[pos.long()], dim=1)
+    batch_user_emb_ui = F.normalize(all_users_ui[users.long()], dim=1)
+    batch_item_emb_ui = F.normalize(all_items_ui[pos.long()], dim=1)
+    inter_vector_ckg = torch.mul(batch_user_emb, batch_item_emb)
+    inter_vector_ui = torch.mul(batch_user_emb_ui, batch_item_emb_ui)
+    diff_vector = inter_vector_ckg - inter_vector_ui
+    diff_vector_mean = torch.mean(diff_vector, dim=0)
+    # 对于每个用户来说,知识对这个用户的每个维度分数的贡献程度,使得他相对于平均水平产生的变化
+    diff_user = 1 - (diff_vector - diff_vector_mean)
+
+    batch_user_emb = F.normalize(all_users_ckg[users.long()], dim=1)
+    batch_user_emb = F.normalize(torch.mul(batch_user_emb, diff_user), dim=1)  # extra
+    batch_item_emb = F.normalize(all_items_ckg[pos.long()], dim=1)
+    pos_score = torch.sum(torch.multiply(batch_user_emb, batch_item_emb), dim=1, keepdim=True)
+    ttl_score = torch.matmul(batch_user_emb, batch_item_emb.T) * world.hyper_SSM_Margin
+    logits = ttl_score - pos_score
+    clogits = torch.logsumexp(logits / world.hyper_SSM_Loss_temp, dim=1)
+    loss = torch.sum(clogits)
+    return loss * world.hyper_SSM_Regulation

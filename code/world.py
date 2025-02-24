@@ -50,13 +50,13 @@ sys_ablation_name = ''
 # region 命令行参数读取
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='WORK2')
+    parser.add_argument('--model', type=str, default='KGPro')
     # classic: LightGCN、MF、GraphDA
     # contrastive: SSM、SimGCL、SGL、XSimGCL
     # KG-based: KGRec、KGCL、MCCLK、KGIN、KGAT、KGCN
-    # mine: PCL、KGIC、WORK2
+    # mine: PCL、KGIC、WORK2、WORK3
     # unUse: QKV、GraphCL、EmbeddingBox
-    parser.add_argument('--dataset', type=str, default='lastfm_kg')
+    parser.add_argument('--dataset', type=str, default='movielens1m_kg')
     # UI数据集: 'citeulikea', 'lastfm', 'movielens1m', 'yelp2018'
     # KG数据集: 'amazonbook', 'yelp2018_kg', 'bookcrossing', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg'
     # GJJ的数据集: 'citeulikea_GJJ', 'lastfm_GJJ', 'movielens1m_GJJ'
@@ -70,10 +70,10 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--nohup', type=bool, default=False)
     parser.add_argument('--tensorboard', type=bool, default=False)  # 是否记录为可视化
-    parser.add_argument('--searcher', type=bool, default=True)  # 是否使用参数搜索
+    parser.add_argument('--searcher', type=bool, default=False)  # 是否使用参数搜索
     parser.add_argument('--early_stop', type=bool, default=True)  # 早停是否开启
     parser.add_argument('--mail_on_stop', type=bool, default=False)  # 程序运行结束时是否发送邮件
-    parser.add_argument('--predict_list', type=bool, default=False)  # 是否保存推荐列表
+    parser.add_argument('--predict_list', type=bool, default=True)  # 是否保存推荐列表
     parser.add_argument('--time_calculate', type=bool, default=False)  # 是否开启时间统计
 
     parser.add_argument('--uuK', type=int, default=0)
@@ -84,7 +84,7 @@ def parse_args():
 
     parser.add_argument('--hyper1', type=int, default=10)  # cluster num
     parser.add_argument('--hyper2', type=float, default=1)  # kd regulation
-    parser.add_argument('--hyper3', type=int, default=7)  # kd mode
+    parser.add_argument('--hyper3', type=int, default=7)  # kd mode 无效 已经删除
     parser.add_argument('--pcl_combine', action="store_true", help="Use SSM weighted BPR")
     parser.add_argument('--no_print', action="store_true", help="Disable all print on running")
 
@@ -92,9 +92,8 @@ def parse_args():
 
 
 args = parse_args()
-hyper_WORK2_cluster_num = 0
-hyper_KD_regulation = 0
-hyper_WORK2_KD_mode = args.hyper3
+hyper_WORK2_cluster_num = args.hyper1
+hyper_KD_regulation = args.hyper2
 hyper_PCL_combine = args.pcl_combine
 
 WORK2_sample_uuK = args.uuK

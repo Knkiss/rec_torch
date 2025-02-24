@@ -9,6 +9,7 @@ from torch_geometric.utils import softmax as scatter_softmax
 import model
 import world
 from train import losses, dataloader, utils
+import scipy.sparse as sp
 
 
 class CKGGCN(nn.Module):
@@ -48,6 +49,13 @@ class CKGGCN(nn.Module):
         item_agg = inter_edge_w.unsqueeze(-1) * entity_emb[inter_edge[1, :]]
         user_agg = torch.zeros_like(user_emb)
         user_agg = user_agg.index_add_(0, inter_edge[0, :], item_agg)
+
+        # Add aggregation for the signal from user to item (reverse direction)
+        user_to_item_agg = inter_edge_w.unsqueeze(-1) * user_emb[inter_edge[0, :]]
+        item_agg_res = torch.zeros_like(entity_emb)
+        item_agg_res = item_agg_res.index_add_(0, inter_edge[1, :], user_to_item_agg)
+        entity_agg += item_agg_res
+
         return entity_agg, user_agg
 
     def forward(self, layers_num, user_emb, entity_emb, inter_edge, inter_edge_w, edge_index, edge_type):
@@ -88,127 +96,113 @@ class WORK3(model.AbstractRecModel):
         self.ui_layers = 3
         self.ckg_layers = 3
 
-        # self.matrix_resample = MatrixResample(self.ui_dataset,
-        #                                       self.Graph_KG,
-        #                                       self.n_users,
-        #                                       self.n_items,
-        #                                       self.num_entities)
-        self.Graph_resample = self.Graph  # Prepare each epoch
+        # 初始化用于在新graph上传播的embedding
+        self.n_prompt = 10
+        self.embedding_prompt = torch.nn.Embedding(num_embeddings=self.n_prompt, embedding_dim=self.embedding_dim)
+        nn.init.normal_(self.embedding_prompt.weight, std=0.1)
 
-        # Use for KD on item group
-        self.group_mlp = nn.Linear(in_features=self.embedding_dim,
-                                   out_features=world.hyper_WORK2_cluster_num).to(world.device)
-        nn.init.normal_(self.group_mlp.weight, std=0.1)
-
-        # if world.hyper_WORK2_reset_ui_graph:
-        #     self.Graph_resample = self.matrix_resample.prepare_init_from_pretrain()
-
-    # def prepare_each_epoch(self):
-    #     eu, ei, ee, g0 = (self.embedding_user.weight,
-    #                       self.embedding_item.weight,
-    #                       self.embedding_entity.weight,
-    #                       self.Graph)
-    #     zu_ui, zi_ui = self.ui_gcn(eu, ei, g0)
-    #     zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
-    #                                   eu,
-    #                                   torch.concat([ei, ee]),
-    #                                   self.inter_edge,
-    #                                   self.inter_edge_w,
-    #                                   self.edge_index,
-    #                                   self.edge_type)
-    #
-    #     self.matrix_resample.prepare_each_epoch(zu_ckg, zi_ckg[:self.n_items])
+        # 在每个epoch开始时更新，额外使用embedding_prompt用于推荐任务
+        self.construct_edges_ratio = 0.03
+        self.Graph_augmented = None
 
     def prepare_each_epoch(self):
-        if world.hyper_WORK2_ablation_model == 3:
-            self.graph_1 = utils.create_adj_mat(self.ui_dataset.trainUser, self.ui_dataset.trainItem,
-                                                self.num_users, self.num_items, is_subgraph=True)
+        self.Graph_augmented = self.construct_graph()
+        # self.Graph_augmented = None
+
+    def construct_graph(self):
+        # 使用CKG通道引导UI通道的子图构建，额外补充prompt_node节点的连接关系
+        zu_ui, zi_ui, zu_ckg, zi_ckg = self.calculate_embedding()
+        zi_ui = zi_ui[:self.num_items]
+        prompt_node = self.embedding_prompt.weight
+
+        z_ckg = torch.concat([zu_ckg, zi_ckg], dim=0)
+        connect_ckg = torch.mm(z_ckg, prompt_node.t())
+        z_ui = torch.concat([zu_ui, zi_ui], dim=0)
+        connect_ui = torch.mm(z_ui, prompt_node.t())
+        diff_connect = connect_ckg - connect_ui
+        positive_edges = diff_connect > 0
+        positive_edges_idx = positive_edges.nonzero(as_tuple=True)  # 获取符合条件的边的索引
+
+        # top比例
+        # connect_values = diff_connect[positive_edges_idx]
+        # top_k = int(positive_edges_idx[0].size(0) * self.construct_edges_ratio)
+        # _, top_k_indices = torch.topk(connect_values, top_k, largest=True)
+        # sampled_edges = (positive_edges_idx[0][top_k_indices], positive_edges_idx[1][top_k_indices])
+
+        # sample比例
+        sample_size = int(positive_edges_idx[0].size(0) * self.construct_edges_ratio)
+        random_indices = torch.randint(0, positive_edges_idx[0].size(0), (sample_size,))
+        sampled_edges = (positive_edges_idx[0][random_indices], positive_edges_idx[1][random_indices])
+
+        sampled_edges_0_cpu = sampled_edges[0].cpu().numpy()
+        sampled_edges_1_cpu = sampled_edges[1].cpu().numpy()
+        print(len(sampled_edges_0_cpu))
+        add_csr = sp.csr_matrix(
+            (torch.ones(len(sampled_edges_0_cpu)), (sampled_edges_0_cpu, sampled_edges_1_cpu)),
+            shape=(self.num_users+self.num_items, self.n_prompt)  # 确保矩阵的形状与self.Graph一致
+        )
+
+        adj_mat = sp.dok_matrix((self.num_users + self.num_items + self.n_prompt,
+                                 self.num_users + self.num_items + self.n_prompt), dtype=np.float32)
+        adj_mat = adj_mat.tolil()
+        R = self.ui_dataset.UserItemNet.tolil()
+        adj_mat[:self.num_users, self.num_users:-self.n_prompt] = R
+        adj_mat[self.num_users:-self.n_prompt, :self.num_users] = R.T
+        A = add_csr.tolil()
+        adj_mat[:-self.n_prompt, -self.n_prompt:] = A
+        adj_mat[-self.n_prompt:, :-self.n_prompt] = A.T
+        adj_mat = adj_mat.todok()
+        rowsum = np.array(adj_mat.sum(axis=1))
+        d_inv = np.power(rowsum, -0.5).flatten()
+        d_inv[np.isinf(d_inv)] = 0.
+        d_mat = sp.diags(d_inv)
+        norm_adj = d_mat.dot(adj_mat)
+        norm_adj = norm_adj.dot(d_mat)
+        norm_adj = norm_adj.tocsr()
+        Graph_augmented = utils.convert_sp_mat_to_sp_tensor(norm_adj)
+        Graph_augmented = Graph_augmented.coalesce().to(world.device)
+
+        return Graph_augmented
 
     def calculate_embedding(self):
         eu, ei = self.embedding_user.weight, self.embedding_item.weight
-        zu_g0, zi_g0 = self.ui_gcn(eu, ei, self.Graph_resample)
-        if world.hyper_WORK2_ablation_model == 3:
-            zu_g1, zi_g1 = self.ui_gcn(eu, ei, self.graph_1)
+
+        if self.training and self.Graph_augmented is not None:
+            concat_emb = torch.concat([ei, self.embedding_prompt.weight], dim=0)
+            zu_ui, zi_ui = self.ui_gcn(eu, concat_emb, self.Graph_augmented)
         else:
-            zu_g1, zi_g1 = self.ckg_gcn(self.ckg_layers,
-                                        self.embedding_user.weight,
-                                        torch.concat([self.embedding_item.weight, self.embedding_entity.weight]),
-                                        self.inter_edge,
-                                        self.inter_edge_w,
-                                        self.edge_index,
-                                        self.edge_type)
-            zi_g1 = zi_g1[:self.n_items]
+            zu_ui, zi_ui = self.ui_gcn(eu, ei, self.Graph)
+
+        zu_ckg, zi_ckg = self.ckg_gcn(self.ckg_layers,
+                                      self.embedding_user.weight,
+                                      torch.concat([self.embedding_item.weight, self.embedding_entity.weight]),
+                                      self.inter_edge,
+                                      self.inter_edge_w,
+                                      self.edge_index,
+                                      self.edge_type)
+        zi_ckg = zi_ckg[:self.n_items]
 
         if self.training:
-            return zu_g0 + zu_g1, zi_g0 + zi_g1, zu_g0, zu_g1, zi_g0, zi_g1
+            return zu_ui, zi_ui, zu_ckg, zi_ckg
         else:
-            if world.hyper_WORK2_BPR_mode == 1:
-                return zu_g0, zi_g0
-            elif world.hyper_WORK2_BPR_mode == 2:
-                return zu_g1, zi_g1
-            else:
-                return zu_g0 + zu_g1, zi_g0 + zi_g1
+            return zu_ui, zi_ui
 
     def calculate_loss(self, users, pos, neg):
         eu, ei, g0 = self.embedding_user.weight, self.embedding_item.weight, self.Graph
-        zu, zi, zu_g0, zu_g1, zi_g0, zi_g1 = self.calculate_embedding()
+        zu_ui, zi_ui, zu_ckg, zi_ckg = self.calculate_embedding()
 
         loss = dict()
-        if world.hyper_WORK2_BPR_mode == 1:
-            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_g0, zi_g0, users, pos, neg)
-        elif world.hyper_WORK2_BPR_mode == 2:
-            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_g1, zi_g1, users, pos, neg)
-        else:
-            loss[losses.Loss.BPR.value] = losses.loss_BPR(zu, zi, users, pos, neg)
+
+        # UI侧
+        loss[losses.Loss.BPR.value] = losses.loss_BPR(zu_ui, zi_ui, users, pos, neg)
+        # loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_ui, zi_ui, users, pos)
+        # loss[losses.Loss.BPR.value] = losses.loss_knowledge_bpr(zu_ui, zi_ui, zu_ckg, zi_ckg, users, pos, neg)
+
+        # CKG侧
+        # loss[losses.Loss.SSL.value] = losses.loss_BPR(zu_ckg, zi_ckg, users, pos, neg)
+        loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_ckg, zi_ckg, users, pos)
+        # loss[losses.Loss.BPR.value] = losses.loss_knowledge_bpr(zu_ui, zi_ui, zu_ckg, zi_ckg, users, pos, neg)
+        # loss[losses.Loss.SSL.value] = losses.loss_knowledge_SSM_origin(zu_ui, zi_ui, zu_ckg, zi_ckg, users, pos)
+
         loss[losses.Loss.Regulation.value] = losses.loss_regulation(eu, ei, users, pos, neg)
-
-        if (world.hyper_WORK2_SSM_mode > 0
-                or world.hyper_WORK2_ablation_model == 2
-                or world.hyper_WORK2_ablation_model == 5):
-            if world.hyper_WORK2_ablation_model == 2:
-                loss[losses.Loss.SSL.value] = losses.loss_BPR(zu_g1, zi_g1, users, pos, neg)
-            elif world.hyper_WORK2_ablation_model == 5:
-                loss[losses.Loss.SSL.value] = (losses.loss_info_nce(zi_g0, zi_g1, pos) +
-                                               losses.loss_info_nce(zu_g0, zu_g1, users))
-                return loss
-            elif world.hyper_WORK2_SSM_mode == 1:
-                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g0, zi_g0, users, pos)
-            elif world.hyper_WORK2_SSM_mode == 2:
-                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu_g1, zi_g1, users, pos)
-            elif world.hyper_WORK2_SSM_mode == 3:
-                loss[losses.Loss.SSL.value] = losses.loss_SSM_origin(zu, zi, users, pos)
-            else:
-                raise NotImplementedError("world.hyper_WORK2_SSM_mode")
-
-        if world.hyper_WORK2_KD_mode > 0 and world.hyper_WORK2_ablation_model != 1:
-            if world.hyper_WORK2_KD_mode == 1:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos)
-            elif world.hyper_WORK2_KD_mode == 2:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_ii_graph_batch(zi_g1, zi_g0, pos, neg)  # w/ neg
-            elif world.hyper_WORK2_KD_mode == 3:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0, pos)
-            elif world.hyper_WORK2_KD_mode == 4:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_cluster_ii_graph_batch(zi_g1, zi_g0)
-            elif world.hyper_WORK2_KD_mode == 5:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_A_graph_batch(zu_g1, zu_g0, zi_g1, zi_g0, users, pos)
-            elif world.hyper_WORK2_KD_mode == 6:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_mlp_ii_graph_batch(self.group_mlp, zi_g1, zi_g0, pos)
-            elif world.hyper_WORK2_KD_mode == 7:
-                loss[losses.Loss.MAE.value] = losses.loss_kd_mlp_ii_graph_batch(self.group_mlp, zi_g1, zi_g0)
-            elif world.hyper_WORK2_KD_mode == 8:
-                loss[losses.Loss.MAE.value] = losses.loss_bpr_mlp_ui_graph_batch(self.group_mlp, zi_g1, zi_g0,
-                                                                                 zu_g1, zu_g0, users, pos, neg,
-                                                                                 form='BPR')
-            elif world.hyper_WORK2_KD_mode == 9:
-                loss[losses.Loss.MAE.value] = losses.loss_bpr_mlp_ui_graph_batch(self.group_mlp, zi_g1, zi_g0,
-                                                                                 zu_g1, zu_g0, users, pos, neg,
-                                                                                 form='InfoNCE')
-            elif world.hyper_WORK2_KD_mode == 10:
-                loss[losses.Loss.MAE.value] = losses.loss_mlp_cluster_contrastive(self.group_mlp, zi_g1, zi_g0, pos)
-            elif world.hyper_WORK2_KD_mode == 11:
-                loss[losses.Loss.MAE.value] = losses.loss_mlp_cluster_contrastive(self.group_mlp, zi_g1, zi_g0, pos,
-                                                                                  reverse=True)
-            else:
-                raise NotImplementedError("world.hyper_WORK2_KD_mode")
-
         return loss

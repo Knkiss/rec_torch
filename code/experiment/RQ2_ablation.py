@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import world
 
-dataset = 'movielens1m_kg'  # amazonbook、movielens1m_kg、lastfm_kg
+dataset = 'lastfm_kg'  # amazonbook、movielens1m_kg、lastfm_kg
 name_list = ['Recall', 'NDCG']
 color_list = [
     "#9DB4D3",  # 淡蓝色，相对明亮
@@ -87,17 +87,17 @@ ax1.set_xlabel("Metrics", fontsize=15, weight='bold')  # X轴标签
 
 ax2.tick_params(labelsize=12)
 
-ax2.bar(ax2_x, ablation1[1], width=bar_width, label='w/ Dual-GCN', fc=color_list[0])
+ax2.bar(ax2_x, ablation1[1], width=bar_width, label='KARE w/ GCN', fc=color_list[0])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation2[1], width=bar_width, label='w/o $\\mathcal{L}_{pcl}$', fc=color_list[1])
+ax2.bar(ax2_x, ablation2[1], width=bar_width, label='KARE w/o ${L}_{pcl}$', fc=color_list[1])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation3[1], width=bar_width, label='w/ $\\mathcal{L}_{bpr}$', fc=color_list[2])
+ax2.bar(ax2_x, ablation3[1], width=bar_width, label='KARE w/ ${L}_{bpr}$', fc=color_list[2])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation4[1], width=bar_width, label='w/o $\\alpha$', fc=color_list[3])
+ax2.bar(ax2_x, ablation4[1], width=bar_width, label='KARE w/o $\\alpha$', fc=color_list[3])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation5[1], width=bar_width, label='w/o $\\mathcal{L}_{ird}$', fc=color_list[4])
+ax2.bar(ax2_x, ablation5[1], width=bar_width, label='KARE w/o ${L}_{ird}$', fc=color_list[4])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, KGAG[1], width=bar_width, label='ICKGO', fc=color_list[5])
+ax2.bar(ax2_x, KGAG[1], width=bar_width, label='KARE', fc=color_list[5])
 ax2.set_ylabel("NDCG@20", fontsize=15, weight='bold')  # Y轴标签
 
 

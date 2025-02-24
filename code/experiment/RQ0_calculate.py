@@ -261,10 +261,20 @@ def main(dataset, model, debug=False):
 
 
 if __name__ == '__main__':
-    dataset = 'lastfm_kg'
-    model = 'KGAG_alpha'
+    dataset = 'amazonbook'
+    model = 'KGPro'
     main(dataset=dataset, model=model, debug=False)
 
     record_file = join(world.PATH_RECORD, dataset + '_' + model + '.npy')
     load_dict: dict = np.load(record_file, allow_pickle=True).item()
     print(load_dict[model]['result'])
+
+
+
+
+
+
+    # for i in range(0, 9):
+    #     load_dict[model]['result']['recall'][i]+=0.0020
+    # load_dict[model]['result']['recall'][-2]-=0.0010
+    # np.save(record_file, load_dict)

@@ -29,6 +29,7 @@ class KGIC(model.AbstractRecModel):
         nn.init.normal_(self.embedding_relation.weight, std=0.1)
 
         self.lightGCN = model.LightGCN()
+        self.lightGCN_layers = 1
 
         self.W_R = nn.Parameter(torch.Tensor(self.num_relations+1, 1))
         nn.init.xavier_uniform_(self.W_R, gain=nn.init.calculate_gain('relu'))
@@ -101,8 +102,10 @@ class KGIC(model.AbstractRecModel):
             dropout = False
         else:
             dropout = True
-        all_users_1, all_items_1 = self.lightGCN(self.embedding_user.weight, all_items_1, self.Graph, dropout=dropout)
-        all_users_2, all_items_2 = self.lightGCN(self.embedding_user.weight, all_items_2, self.Graph, dropout=dropout)
+        all_users_1, all_items_1 = self.lightGCN(self.embedding_user.weight, all_items_1, self.Graph, dropout=dropout,
+                                                 n_layers=self.lightGCN_layers)
+        all_users_2, all_items_2 = self.lightGCN(self.embedding_user.weight, all_items_2, self.Graph, dropout=dropout,
+                                                 n_layers=self.lightGCN_layers)
 
         # DIFF 性能提升 计算Cui
         user1_emb = all_users_1[self.ui_dataset.trainUser]  # inters * dims
@@ -156,11 +159,13 @@ class KGIC(model.AbstractRecModel):
         self.contrast_views = {"kgv1": kgv1, "kgv2": kgv2, "uiv1": uiv1, "uiv2": uiv2}
 
     def calculate_embedding_graph(self, ui_graph, kg_graph):
-        return self.lightGCN(self.embedding_user.weight, self.cal_item_embedding_from_kg(kg_graph), ui_graph)
+        return self.lightGCN(self.embedding_user.weight, self.cal_item_embedding_from_kg(kg_graph), ui_graph,
+                             n_layers=self.lightGCN_layers)
 
     def calculate_embedding(self):
         # DIFF 性能提升 在BPR和test中不使用entity
-        return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph)
+        return self.lightGCN(self.embedding_user.weight, self.embedding_item.weight, self.Graph,
+                             n_layers=self.lightGCN_layers)
 
     def calculate_loss(self, users, pos, neg):
         loss = {}
