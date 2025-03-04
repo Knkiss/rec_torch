@@ -23,8 +23,8 @@ marker_list = [m for m, func in Line2D.markers.items()
 color_list = ['purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r',
               'purple', 'y', 'coral', 'c', 'b', 'g', 'm', 'orange', 'r']
 # metric_list = ['recall', 'ndcg', 'hit_ratio', 'map']
-metric_list = ['recall']
-# metric_list = ['recall', 'precision', 'hit_ratio', 'ndcg']
+# metric_list = ['recall']
+metric_list = ['recall', 'precision', 'hit_ratio', 'ndcg']
 metric_list_name = ['Recall', 'Precision', 'HR', 'NDCG']
 # metric_list_name = ['Recall', 'NDCG', 'HR', 'MAP']
 metric_name = {'recall': 'Recall', 'ndcg': 'NDCG'}
@@ -86,7 +86,7 @@ def RQ4_compare_sparsity(datasets, models, type='png', fig_show=False, fig_save=
                     tick_label=name_list, fc='#6E7BC7')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label='KARE', fc='#484E82')
+            plt.bar(x, data[models[0]], width=width, label='KGSP', fc='#484E82')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -177,7 +177,7 @@ def RQ3_compare_longTail(datasets, models, type='png', fig_show=False, fig_save=
                     tick_label=name_list, fc='#5CA8B3')
             for i in range(len(x)):
                 x[i] += width1
-            plt.bar(x, data[models[0]], width=width, label='KARE', fc='#2B5A66')
+            plt.bar(x, data[models[0]], width=width, label='KGSP', fc='#2B5A66')
             plt.yticks(fontsize=14, weight='bold')
             plt.xticks(size=14, weight='bold')
             # 标题
@@ -457,8 +457,9 @@ if __name__ == '__main__':
     # model_list = ['KGGE','KGRec','KGAG','KGCL','SGL','MCCLK','KGIN','KGAT','LightGCN','MF']
     # dataset_list = ['amazonbook', 'yelp2018_kg', 'movielens1m_kg', 'lastfm_kg', 'lastfm_wxkg']
     # model_list = ['CKGAGG_2', 'CKGAGG_1', 'CKGAGG', 'PCL', 'KGAG', 'KGRec', 'SSM', 'SimGCL']
-    dataset_list = ['amazonbook', 'lastfm_kg']
+    # dataset_list = ['amazonbook', 'lastfm_kg']
     # dataset_list = ['amazonbook', 'movielens1m_kg', 'lastfm_kg']
+    dataset_list = ['movielens1m_kg']
     # model_list = ['WORK2', 'MF', 'LightGCN', 'GraphDA', 'SGL', 'SimGCL', 'XSimGCL', 'SSM', 'KGAT', 'KGIN', 'MCCLK', 'KGRec']
     # model_list = ['WORK2', 'WORK21ablation', 'WORK22ablation', 'WORK23ablation', 'WORK24ablation', 'WORK25ablation', ]
     # RQ0_datasets_statistics(datasets=dataset_list)
@@ -482,6 +483,10 @@ if __name__ == '__main__':
     model_list = ['KGPro', 'MF', 'LightGCN', 'GraphDA',
                   'SGL', 'SimGCL', 'XSimGCL', 'SSM',
                   'KGAT', 'KGIN', 'MCCLK', 'KGRec']
+    # WORK3的长尾实验
+    # model_list = ['KGPro', 'SimGCL', 'SGL']
+    # WORK3的稀疏实验
+    # model_list = ['KGPro', 'SimGCL', 'KGRec']
 
     save_fig_type = 'png'  # png 或 eps
     world.PATH_PLOT = os.path.join(world.PATH_PLOT, model_list[0])

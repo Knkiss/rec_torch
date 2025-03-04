@@ -112,38 +112,31 @@ class KGPro(model.AbstractRecModel):
                                     self.inter_edge_w,
                                     self.edge_index,
                                     self.edge_type)
-
         # 计算UI和CKG的交互图
         zi_g1 = zi_g1[:self.n_items]
         ui_predict_graph = torch.mm(zu_g0, zi_g0.T).cpu()
         ckg_predict_graph = torch.mm(zu_g1, zi_g1.T).cpu()
         diff_predict = ckg_predict_graph - ui_predict_graph
+        # diff_predict = ckg_predict_graph  # TODO Ablation w/o E_ui
 
         # 所有正值归一化到0-1，作为边的权重
         diff_predict[diff_predict < 0] = 0
-        # 非线性归一化 TODO 参数 tau温度系数
+        # 非线性归一化 TODO 超参数 tau温度系数
         tau = 1.5    # 5=0.3939 1.5=0.3947 1=0.3946 0.75=3941 0.5=0.3925
         normalized_diff_predict = torch.sigmoid(torch.exp(diff_predict / tau))
         # 线性归一化
         # normalized_diff_predict = (diff_predict - diff_predict.min()) / (diff_predict.max() - diff_predict.min())
 
-        # 每个用户找出前5个边，作为可选的prompt_edge TODO 参数 topk
+        # 每个用户找出前5个边，作为可选的prompt_edge TODO 超参数 topk
         topk = 20  # 50=0.2912 25=0.3930 20=0.3973 5=0.3947
         values, cols = torch.topk(normalized_diff_predict, topk, dim=1)
         values = values.reshape(-1)
         cols = cols.reshape(-1)
         rows = torch.arange(normalized_diff_predict.shape[0], device=world.device).repeat(topk, 1).T.reshape(-1)
 
-        # CKG prompt边的加权比例，TODO 参数beta 补充比例
+        # CKG prompt边的加权比例，TODO 超参数beta 补充比例
         beta = 0.05  # 0.01=0.3947 0.05=0.3964 0.1=0.3962 0.5=0.2909
         values = beta * values
-
-        # 对prompt_edge做随机采样，TODO 参数 p保留概率
-        # p = 0.8
-        # mask = torch.rand_like(values) > (1-p)
-        # values = values[mask]
-        # rows = rows[mask]
-        # cols = cols[mask]
 
         # 构造增强UI图
         adj_mat = sp.dok_matrix((self.n_users + self.n_items, self.n_users + self.n_items), dtype=np.float32)
@@ -158,6 +151,10 @@ class KGPro(model.AbstractRecModel):
         stack_cols = np.concatenate([ori_cols, cols.cpu().detach().numpy()])
         new_UserItemNet = sp.csr_matrix((stack_values, (stack_rows, stack_cols)),
                                         shape=(self.n_users, self.n_items))
+        # new_UserItemNet = sp.csr_matrix((values.cpu().detach().numpy(),
+        #                                  (rows.cpu().detach().numpy(),
+        #                                   cols.cpu().detach().numpy())),
+        #                                 shape=(self.n_users, self.n_items))  # TODO ablation w/o G_ui
 
         R = new_UserItemNet.tolil()
         adj_mat[:self.n_users, self.n_users:] = R
@@ -184,20 +181,25 @@ class KGPro(model.AbstractRecModel):
         # noise_all_emb = torch.mul(all_emb, noise_ratio)
         noise_all_emb = torch.nn.functional.dropout(all_emb, p=0.2, training=True)  # gating和noise的区别
         noise_eu, noise_ei = torch.split(noise_all_emb, [self.n_users, self.n_items], dim=0)
+        # TODO Ablation w/o RG
+        # noise_eu, noise_ei = torch.split(all_emb, [self.n_users, self.n_items], dim=0)
 
         # 增强图的前向计算
-        enhanced_zu_g0, enhanced_zi_g0 = self.ui_gcn(noise_eu, noise_ei, self.Graph_enhanced)
+        layer_num = 2  # TODO 超参数 增强图传播层数 1=0.3935 2=0.3974 3=0.3959 4=0.2893
+        enhanced_zu_g0, enhanced_zi_g0 = self.ui_gcn(noise_eu, noise_ei, self.Graph_enhanced, n_layers=layer_num)
         enhanced_all_emb = torch.concat([enhanced_zu_g0, enhanced_zi_g0], dim=0)
 
         # 可学习mlp的回传计算
-        # enhanced_all_emb = enhanced_all_emb.detach()
-        # final_all_emb = torch.mul(enhanced_all_emb, torch.sigmoid(self.adaptive_gating(enhanced_all_emb)))
         final_all_emb = all_emb + torch.mul(enhanced_all_emb, torch.sigmoid(self.adaptive_gating(enhanced_all_emb)))
-        # final_all_emb = all_emb
+        # TODO Ablation w/o AG
+        # final_all_emb = all_emb + enhanced_all_emb
 
         # 最终计算
         final_eu, final_ei = torch.split(final_all_emb, [self.n_users, self.n_items], dim=0)
         zu_g0, zi_g0 = self.ui_gcn(final_eu, final_ei, self.Graph)  # 推荐
+
+        # TODO Ablation w/o PL
+        # zu_g0, zi_g0 = torch.split(enhanced_all_emb, [self.n_users, self.n_items], dim=0)
 
         zu_g1, zi_g1 = self.ckg_gcn(self.ckg_layers,  # CKG优化
                                     self.embedding_user.weight,
@@ -206,6 +208,7 @@ class KGPro(model.AbstractRecModel):
                                     self.inter_edge_w,
                                     self.edge_index,
                                     self.edge_type)
+
         zi_g1 = zi_g1[:self.n_items]
 
         if self.training:

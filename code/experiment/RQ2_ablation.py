@@ -18,26 +18,26 @@ color_list = [
 
 
 if dataset == 'amazonbook':
-    KGAG = [0.1654, 0.1266]
-    ablation1 = [0.1108, 0.0901]
-    ablation2 = [0.1388, 0.1026]
-    ablation3 = [0.1447, 0.1093]
-    ablation4 = [0.1527, 0.1104]
-    ablation5 = [0.1622, 0.1235]
+    KGAG = [0.1660, 0.1267]
+    ablation1 = [0.1579, 0.1200]
+    ablation2 = [0.1520, 0.1120]
+    ablation3 = [0.1573, 0.1196]
+    ablation4 = [0.1427, 0.1004]
+    ablation5 = [0.1338, 0.0965]
 elif dataset == 'movielens1m_kg':
-    KGAG = [0.3502, 0.5707]
-    ablation1 = [0.2204, 0.448]
-    ablation5 = [0.3458, 0.5645]
-    ablation2 = [0.3226, 0.5457]
-    ablation3 = [0.3377, 0.5534]
-    ablation4 = [0.3454, 0.564]
+    KGAG = [0.3478, 0.5681]
+    ablation1 = [0.3345, 0.5428]
+    ablation2 = [0.3310, 0.5409]
+    ablation3 = [0.3377, 0.5524]
+    ablation4 = [0.3137, 0.5031]
+    ablation5 = [0.2586, 0.4957]
 elif dataset == 'lastfm_kg':
-    KGAG = [0.4, 0.3475]
-    ablation1 = [0.3354, 0.3045]
-    ablation2 = [0.369, 0.2964]
-    ablation3 = [0.3802, 0.3306]
-    ablation4 = [0.3944, 0.3403]
-    ablation5 = [0.3961, 0.3423]
+    KGAG = [0.3964, 0.3465]
+    ablation1 = [0.3914, 0.3424]
+    ablation2 = [0.3900, 0.3323]
+    ablation3 = [0.3943, 0.3432]
+    ablation4 = [0.3805, 0.3261]
+    ablation5 = [0.3215, 0.2788]
 
 
 
@@ -50,7 +50,7 @@ ax2 = ax1.twinx()
 ax1.set_xlim([0.1, 0.9])
 
 if dataset == 'amazonbook':
-    ax1.set_ylim([0.08, 0.17])
+    ax1.set_ylim([0.08, 0.18])
     # ax1.set_yticks([0.150, 0.1505, 0.151, 0.1515, 0.152])
     ax2.set_ylim([0.08, 0.17])
     # ax2.set_yticks([0.112, 0.115, 0.118, 0.121, 0.124, 0.127])
@@ -64,7 +64,7 @@ elif dataset == 'movielens1m_kg':
 elif dataset == 'lastfm_kg':
     ax1.set_ylim([0.28, 0.42])
     # ax1.set_yticks([0.36, 0.37, 0.38, 0.39, 0.40, 0.405])
-    ax2.set_ylim([0.28, 0.42])
+    ax2.set_ylim([0.26, 0.42])
     # ax2.set_yticks([0.29, 0.35])
     pass
 
@@ -87,17 +87,17 @@ ax1.set_xlabel("Metrics", fontsize=15, weight='bold')  # X轴标签
 
 ax2.tick_params(labelsize=12)
 
-ax2.bar(ax2_x, ablation1[1], width=bar_width, label='KARE w/ GCN', fc=color_list[0])
+ax2.bar(ax2_x, ablation1[1], width=bar_width, label='KGSP w/o ${E}_{ui}$', fc=color_list[0])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation2[1], width=bar_width, label='KARE w/o ${L}_{pcl}$', fc=color_list[1])
+ax2.bar(ax2_x, ablation2[1], width=bar_width, label='KGSP w/o ${G}_{ui}$', fc=color_list[1])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation3[1], width=bar_width, label='KARE w/ ${L}_{bpr}$', fc=color_list[2])
+ax2.bar(ax2_x, ablation3[1], width=bar_width, label='KGSP w/o RG', fc=color_list[2])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation4[1], width=bar_width, label='KARE w/o $\\alpha$', fc=color_list[3])
+ax2.bar(ax2_x, ablation4[1], width=bar_width, label='KGSP w/o AG', fc=color_list[3])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, ablation5[1], width=bar_width, label='KARE w/o ${L}_{ird}$', fc=color_list[4])
+ax2.bar(ax2_x, ablation5[1], width=bar_width, label='KGSP w/o PL', fc=color_list[4])
 ax2_x[0] += bar_and_space_width
-ax2.bar(ax2_x, KGAG[1], width=bar_width, label='KARE', fc=color_list[5])
+ax2.bar(ax2_x, KGAG[1], width=bar_width, label='KGSP', fc=color_list[5])
 ax2.set_ylabel("NDCG@20", fontsize=15, weight='bold')  # Y轴标签
 
 
@@ -119,7 +119,7 @@ for label in ax1.get_xticklabels() + ax1.get_yticklabels() + ax2.get_xticklabels
 
 # plt.show()
 
-output_dir = os.path.join(world.PATH_PLOT, 'WORK2', 'RQ2')
+output_dir = os.path.join(world.PATH_PLOT, 'KGPro', 'RQ2')
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 plt.savefig(os.path.join(output_dir, dataset + '_ablation.eps'), dpi=900, bbox_inches='tight')
